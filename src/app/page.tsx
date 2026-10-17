@@ -33,8 +33,6 @@ type Product = {
 
 const baseRoom =
   "https://images.pexels.com/photos/33688058/pexels-photo-33688058.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1600";
-const refreshedRoom =
-  "https://images.pexels.com/photos/15867752/pexels-photo-15867752.png?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1600";
 
 const products: Product[] = [
   {
@@ -126,7 +124,7 @@ export default function HomePage() {
   const [roomType, setRoomType] = useState("Rented apartment");
   const [theme, setTheme] = useState("Warm minimal");
   const [budget, setBudget] = useState(6000);
-  const [comparison, setComparison] = useState(49);
+  
   const [generated, setGenerated] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -165,6 +163,7 @@ export default function HomePage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showApi, setShowApi] = useState(false);
+  const [showList, setShowList] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -177,8 +176,9 @@ export default function HomePage() {
     window.setTimeout(() => setToast(null), 2800);
   };
 
-  const handleUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleUpload = (event: ChangeEvent<HTMLInputElement>) => handleFile(event.target.files?.[0]);
+
+  const handleFile = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       notify("Please choose a JPG, PNG, or WEBP image.");
@@ -198,10 +198,14 @@ export default function HomePage() {
   };
 
   const generateMakeover = async () => {
+    if (!uploadedImage) {
+      notify("Add a room photo first - the plan is for your space.");
+      return;
+    }
     setIsGenerating(true);
-    setProgressText("Mapping walls, windows & furniture");
-    window.setTimeout(() => setProgressText("Styling your room within budget"), 900);
-    window.setTimeout(() => setProgressText("Matching shoppable pieces"), 1900);
+    setProgressText("Reading your style and budget brief");
+    window.setTimeout(() => setProgressText("Putting your look plan together"), 900);
+    window.setTimeout(() => setProgressText("Matching pieces to your budget"), 1900);
 
     try {
       const response = await fetch("/api/makeover", {
@@ -221,16 +225,14 @@ export default function HomePage() {
         }),
       });
       const data = (await response.json()) as { configured?: boolean; mode?: string; message?: string };
-      if (data.configured) notify("Your Replicate prediction has started — demo result shown while it runs.");
-      else if (data.mode === "demo") notify("Demo preview - live AI generation isn't connected yet.");
+      if (data.mode === "demo") notify("Live AI redesign isn't connected yet - your photo is untouched.");
     } catch {
-      // The interface remains usable in demo mode if the local API is unavailable.
+      notify("Server unavailable - you can still edit a local sample list. Nothing was saved online.");
     } finally {
       window.setTimeout(() => {
         setIsGenerating(false);
         setGenerated(true);
-        setComparison(46);
-        notify("Your room is ready to explore.");
+        notify("Your look plan is ready - your photo stays exactly as you took it.");
       }, 2550);
     }
   };
@@ -254,8 +256,8 @@ export default function HomePage() {
           <span>roomly</span>
         </button>
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="#how-it-works">How it works</a>
-          <button onClick={() => setShowApi(true)}>For builders</button>
+          <button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }), 30); }}>How it works</button>
+          <button onClick={() => setShowApi(true)}>Feature status</button>
         </nav>
         <div className="nav-actions">
           <button className="text-button" onClick={() => setShowSignIn(true)}>{sessionEmail ? sessionEmail : "Sign in"}</button>
@@ -270,41 +272,41 @@ export default function HomePage() {
               <div className="hero-copy">
                 <div className="eyebrow"><span className="eyebrow-dot" /> Design intelligence for real homes</div>
                 <h1>See your room’s<br /><em>next version.</em></h1>
-                <p className="hero-text">Upload the room you have. Discover the space it could become — with a makeover you can actually shop and a budget you can actually keep.</p>
+                <p className="hero-text">Upload the room you have. Discover the space it could become - with a simple decor planning workspace. Live AI redesign is not connected yet.</p>
                 <div className="hero-actions">
-                  <button className="primary-button" onClick={goToStudio}>Start your makeover <Icon name="arrow" size={18} /></button><p className="generation-note hero-demo-note">Free demo preview - live AI generation isn't connected yet.</p>
+                  <button className="primary-button" onClick={goToStudio}>Start your makeover <Icon name="arrow" size={18} /></button><p className="generation-note hero-demo-note">Free planning demo - live AI generation isn't connected yet.</p>
                   <button className="watch-button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}><span className="play-dot"><Icon name="play" size={12} /></span> How it works</button>
                 </div>
                 <div className="proof-line"><span className="faces"><i>R</i><i>A</i><i>N</i><i>J</i></span><span><b>Made for</b> renters, PGs &amp; first homes</span></div>
               </div>
 
-              <div className="hero-visual" aria-label="Example of a room transformation">
-                <div className="hero-badge"><Icon name="sparkle" size={15} /> AI room intelligence</div>
+              <div className="hero-visual" aria-label="Sample room with a warm minimal styling mood">
+                <div className="hero-badge"><Icon name="sparkle" size={15} /> Room planning studio</div>
                 <div className="hero-frame">
                   <div className="hero-room-image" style={{ backgroundImage: `url(${baseRoom})` }} />
                   <div className="hero-wash" />
-                  <div className="hero-caption hero-caption-top"><span>BEFORE</span><b>Your room</b></div>
-                  <div className="hero-caption hero-caption-bottom"><span>AFTER</span><b>Warm minimal</b></div>
+                  <div className="hero-caption hero-caption-top"><span>SAMPLE</span><b>Stock photo</b></div>
+                  <div className="hero-caption hero-caption-bottom"><span>MOOD</span><b>Warm minimal</b></div>
                   <div className="style-stamp"><span>01</span><div><b>Made for<br />your life.</b><small>Not a moodboard.</small></div></div>
                 </div>
                 <div className="floating-note note-one"><span className="note-icon rust"><Icon name="sparkle" size={14} /></span><div><small>YOUR VIBE</small><b>Warm minimal</b></div></div>
-                <div className="floating-note note-two"><span className="note-icon olive"><Icon name="check" size={14} /></span><div><small>WITHIN BUDGET</small><b>₹5,846 total</b></div></div>
+                <div className="floating-note note-two"><span className="note-icon olive"><Icon name="check" size={14} /></span><div><small>EXAMPLE MOOD</small><b>Decor inspiration</b></div></div>
               </div>
             </div>
           </section>
 
           <section className="trust-strip">
             <span>Built for the way homes actually are</span>
-            <div><b>STRUCTURE-AWARE AI</b><b>SHOPPABLE RESULTS</b><b>INDIA-READY BUDGETS</b></div>
+            <div><b>PHOTO STAYS ON DEVICE</b><b>EDITABLE DECOR LIST</b><b>INDIA-READY BUDGETS</b></div>
           </section>
 
           <section className="steps-section" id="how-it-works">
             <div className="section-kicker">A REALISTIC PATH TO A NEW ROOM</div>
-            <div className="steps-heading"><h2>Not a fantasy render.<br />A plan for <em>your space.</em></h2><p>Roomly reads the perspective and permanent parts of your room first — then designs around the life already happening there.</p></div>
+            <div className="steps-heading"><h2>Not a fantasy render.<br />A plan for <em>your space.</em></h2><p>Keep your real room photo in view while you choose a style and budget. Explore an editable sample decor list. AI image redesign is not connected yet.</p></div>
             <div className="steps-grid">
-              <article className="step-card"><span className="step-number">01</span><div className="step-icon"><Icon name="camera" size={21} /></div><h3>Show us the room</h3><p>Snap, upload, or start with the space you live in now.</p><span className="step-link">Your room, safely held <Icon name="arrow" size={15} /></span></article>
-              <article className="step-card featured-step"><span className="step-number">02</span><div className="step-icon"><Icon name="sliders" size={21} /></div><h3>Set the brief</h3><p>Choose a vibe, room type, and a spend that feels comfortable.</p><span className="step-link">No expert words needed <Icon name="arrow" size={15} /></span></article>
-              <article className="step-card"><span className="step-number">03</span><div className="step-icon"><Icon name="bag" size={21} /></div><h3>Make it real</h3><p>Tap any piece you love, then take the exact shopping list with you.</p><span className="step-link">From vision to checkout <Icon name="arrow" size={15} /></span></article>
+              <article className="step-card"><span className="step-number">01</span><div className="step-icon"><Icon name="camera" size={21} /></div><h3>Show us the room</h3><p>Snap, upload, or start with the space you live in now.</p><button className="step-link" onClick={goToStudio}>Your room, safely held <Icon name="arrow" size={15} /></button></article>
+              <article className="step-card featured-step"><span className="step-number">02</span><div className="step-icon"><Icon name="sliders" size={21} /></div><h3>Set the brief</h3><p>Choose a vibe, room type, and a spend that feels comfortable.</p><button className="step-link" onClick={goToStudio}>No expert words needed <Icon name="arrow" size={15} /></button></article>
+              <article className="step-card"><span className="step-number">03</span><div className="step-icon"><Icon name="bag" size={21} /></div><h3>Make it real</h3><p>Tap any piece you love, then download your sample decor list.</p><button className="step-link" onClick={goToStudio}>Edit your decor list <Icon name="arrow" size={15} /></button></article>
             </div>
           </section>
         </>
@@ -318,17 +320,17 @@ export default function HomePage() {
             <div className="canvas-topline"><div><span className="eyebrow-number">01</span><h3>Capture your space</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
             <input ref={inputRef} onChange={handleUpload} type="file" accept="image/jpeg,image/png,image/webp" hidden />
             {!uploadedImage && !generated && !isGenerating ? (
-              <button className="upload-dropzone" onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
+              <button className="upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
             ) : (
               <div className="work-canvas">
-                <div className="canvas-photo before-photo" style={{ backgroundImage: `url(${roomImage})` }} />
-                {generated && <><div className="canvas-photo after-photo" style={{ backgroundImage: `url(${refreshedRoom})`, clipPath: `inset(0 0 0 ${comparison}%)` }} /><div className="comparison-line" style={{ left: `${comparison}%` }}><span /><input aria-label="Compare before and after" type="range" min="0" max="100" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} /></div><span className="compare-label before-label">BEFORE</span><span className="compare-label after-label">DEMO PREVIEW · {theme.toUpperCase()}</span></>}
-                {isGenerating && <div className="generation-overlay"><div className="scanline" /><div className="generating-card"><span className="generating-star"><Icon name="sparkle" size={20} /></span><b>Making it feel like yours</b><p>{progressText}</p><div className="loading-track"><span /></div></div></div>}
-                {!generated && !isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
+                <div className="canvas-photo" style={{ backgroundImage: `url(${roomImage})` }} />
+                {generated && <span className="compare-label after-label">YOUR PHOTO · LOOK PLAN READY</span>}
+                {isGenerating && <div className="generation-overlay"><div className="generating-card"><span className="generating-star"><Icon name="sparkle" size={20} /></span><b>Putting your look plan together</b><p>{progressText}</p><div className="loading-track"><span /></div></div></div>}
+                {!isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
               </div>
             )}
-            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}>{isGenerating ? <><span className="spinner" /> Creating your room</> : <><Icon name="sparkle" size={18} /> {generated ? "Show another sample preview" : "Create my makeover"}<span className="button-price">{tier === "pro" ? "₹150" : "Free"}</span></>}</button>
-            <p className="generation-note">Demo preview - live AI generation isn't connected yet, so the result is a sample styled from your choices, not a render of your actual photo.</p>
+            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}>{isGenerating ? <><span className="spinner" /> Preparing your list</> : <><Icon name="sparkle" size={18} /> {generated ? "Update my look plan" : "Create my look plan"}<span className="button-price">{tier === "pro" ? "₹150" : "Free"}</span></>}</button>
+            <p className="generation-note">Live AI redesign isn't connected yet, so nothing is rendered over your photo. The editable sample decor list below is not AI-generated.</p>
           </section>
 
           <aside className="brief-panel">
@@ -345,33 +347,31 @@ export default function HomePage() {
             <div className="range-ends"><span>₹2,000</span><span>₹10,000+</span></div>
 
             <div className="tier-switcher">
-              <button className={`tier-option ${tier === "standard" ? "selected" : ""}`} onClick={() => setTier("standard")}><span><b>Standard</b><small>Free · 720p preview</small></span>{tier === "standard" && <Icon name="check" size={16} />}</button>
-              <button className="tier-option" onClick={() => notify("HD generation isn't available in this free demo yet - the Standard preview is shown.")}><span className="pro-label"><i><Icon name="zap" size={12} /></i><b>HD precision</b><small>₹150 · 1080p final · not in demo</small></span></button>
+              <button className={`tier-option ${tier === "standard" ? "selected" : ""}`} onClick={() => setTier("standard")}><span><b>Standard</b><small>Free · photo + decor list</small></span>{tier === "standard" && <Icon name="check" size={16} />}</button>
+              <button className="tier-option" onClick={() => notify("HD generation isn't available in this free demo yet - the Standard preview is shown.")}><span className="pro-label"><i><Icon name="zap" size={12} /></i><b>HD precision</b><small>Unavailable · no payment taken</small></span></button>
             </div>
           </aside>
 
           <aside className={`shop-panel ${generated ? "shop-ready" : ""}`}>
             <div className="panel-heading"><span className="eyebrow-number">03</span><h3>Make it happen</h3></div>
             {generated ? <>
-              <p className="shop-intro">Tap a glowing dot in your room or add the pieces that make this look work.</p>
-              <div className="hotspot-stage">
-                <div className="mini-room" style={{ backgroundImage: `url(${refreshedRoom})` }} />
-                {products.map((product, index) => <button key={product.id} className={`hotspot-dot ${selectedProduct?.id === product.id ? "active" : ""}`} style={product.position} onClick={() => setSelectedProduct(product)} aria-label={`Select ${product.title}`}>{index + 1}</button>)}
-              </div>
+              <p className="shop-intro">Sample decor ideas to edit alongside your {theme.toLowerCase()} brief. These are not objects detected in your photo or live retailer offers. Check your list total against your budget.</p>
+              <div className="product-choices">{products.map(product => <button key={product.id} className={`theme-choice ${selectedProduct?.id === product.id ? "selected" : ""}`} onClick={() => setSelectedProduct(product)}>{product.title}</button>)}</div>
               {selectedProduct && <div className="selected-product"><div className={`product-thumb ${selectedProduct.tone}`}><span /></div><div><small>{selectedProduct.category}</small><b>{selectedProduct.title}</b><span>₹{formatPrice(selectedProduct.price)}</span></div><button className="circle-action" onClick={() => toggleCart(selectedProduct.id)} aria-label="Toggle item in list">{cart.includes(selectedProduct.id) ? <Icon name="check" size={15} /> : <Icon name="bag" size={15} />}</button></div>}
-              <div className="cart-summary"><div><span>Your edit list</span><b>{cart.length} pieces · ₹{formatPrice(cartTotal)}</b></div><button onClick={() => notify("Your edit list is saved here - links to buy come with the live catalog.")}>View list <Icon name="arrow" size={14} /></button></div>
-            </> : <div className="shop-empty"><div><Icon name="bag" size={24} /></div><b>Your shopping edit lives here</b><p>Once your makeover is ready, tap any piece to see a curated, in-budget match.</p><span><Icon name="info" size={14} /> Sample prices - confirm before buying</span></div>}
+              <div className="cart-summary"><div><span>Your edit list</span><b>{cart.length} pieces · ₹{formatPrice(cartTotal)}</b></div><button onClick={() => setShowList(true)}>View list <Icon name="arrow" size={14} /></button></div>
+            </> : <div className="shop-empty"><div><Icon name="bag" size={24} /></div><b>Your shopping edit lives here</b><p>Create a look plan to browse sample decor ideas and edit your list. Prices are estimates, not live offers.</p><span><Icon name="info" size={14} /> Sample prices - confirm before buying</span></div>}
           </aside>
         </div>
       </section>
 
-      {view === "studio" && <section className="result-details"><div className="details-copy"><span className="section-kicker">STRUCTURE, NOT GUESSWORK</span><h2>Why this look still feels<br />like <em>your room.</em></h2><p>Roomly’s image pipeline considers the permanent details first. The walls, windows, doorway and the silhouette of your key furniture remain the design’s foundation.</p><button className="text-link" onClick={() => setShowApi(true)}>See the AI workflow <Icon name="arrow" size={16} /></button></div><div className="pipeline-card"><div className="pipeline-head"><Icon name="sparkle" size={17} /><span>ROOMLY SPATIAL ENGINE</span><b>Ready</b></div><div className="pipeline-line"><span className="pipeline-node complete"><Icon name="check" size={14} /></span><div><b>Depth & segmentation</b><small>Room geometry held in place</small></div></div><div className="pipeline-line"><span className="pipeline-node complete"><Icon name="check" size={14} /></span><div><b>Controlled generation</b><small>Prompt adapted for {roomType.toLowerCase()}</small></div></div><div className="pipeline-line"><span className="pipeline-node"><Icon name="bag" size={14} /></span><div><b>Shoppable detection</b><small>Pieces matched to your ₹{formatPrice(budget)} brief</small></div></div></div></section>}
+      {view === "studio" && <section className="result-details"><div className="details-copy"><span className="section-kicker">HONEST STATUS</span><h2>What Roomly does today -<br />and what it <em>doesn’t.</em></h2><p>Your original photo stays unchanged. Your photo stays on this device, and you can edit a sample decor list while keeping your style and budget brief in view.</p><button className="text-link" onClick={() => setShowApi(true)}>Feature status <Icon name="arrow" size={16} /></button></div><div className="pipeline-card"><div className="pipeline-head"><Icon name="sparkle" size={17} /><span>ROOMLY STATUS</span><b>Live</b></div><div className="pipeline-line"><span className="pipeline-node complete"><Icon name="check" size={14} /></span><div><b>Photo stays on your device</b><small>Never uploaded or transformed</small></div></div><div className="pipeline-line"><span className="pipeline-node complete"><Icon name="check" size={14} /></span><div><b>Your chosen brief</b><small>{theme} · {roomType.toLowerCase()} · ₹{formatPrice(budget)}</small></div></div><div className="pipeline-line"><span className="pipeline-node"><Icon name="sparkle" size={14} /></span><div><b>AI room redesign</b><small>Not connected yet - no fake images</small></div></div></div></section>}
 
-      <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><a href="#how-it-works">How it works</a><button onClick={() => setShowApi(true)}>For builders</button></div></footer>
+      <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }), 30); }}>How it works</button><button onClick={() => setShowApi(true)}>Feature status</button></div></footer>
 
-      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close"><Icon name="close" size={18} /></button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign in to keep your makeover boards, shopping lists and HD creations in one place.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email <Icon name="arrow" size={16} /></button></>}<small>By continuing, you agree to roomly’s Terms and Privacy Policy.</small></div></div>}
+      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close"><Icon name="close" size={18} /></button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign-in and saved makeovers are still being set up. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email <Icon name="arrow" size={16} /></button></>}<small>In this demo, room photos stay on your device. No image-generation service receives them.</small></div></div>}
 
-      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Replicate API setup"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close"><Icon name="close" size={18} /></button><span className="section-kicker">REPLICATE + CONTROLNET</span><h2>Ship the structure-aware workflow.</h2><p>Set your server-only token and a compatible image-to-image ControlNet model. Roomly sends the original room image, a room-specific prompt and the selected quality tier through the protected route.</p><div className="env-card"><span>.env.local</span><code>REPLICATE_API_TOKEN=r8_••••••••<br />REPLICATE_MODEL=owner/controlnet-inpaint-model</code></div><ol className="api-steps"><li><b>Capture the whole room.</b><span>Send the image as a data URL or upload it to durable storage first.</span></li><li><b>Preserve what is permanent.</b><span>Use your model’s depth / segmentation and mask inputs to keep layout intact.</span></li><li><b>Start a prediction securely.</b><span>The included <code>/api/makeover</code> route uses Bearer auth and <code>Prefer: wait=60</code>.</span></li><li><b>Match the generated objects.</b><span>Resolve product matches server-side before rendering tappable hotspots.</span></li></ol><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio <Icon name="arrow" size={17} /></button></div></div>}
+      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close"><Icon name="close" size={18} /></button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>A planning demo, not an AI render.</h2><p>You can add your room photo, set a style and budget, and edit a sample decor list. Your photo stays unchanged on this device. AI redesign, live retailer prices, checkout, public sign-in and cloud saving are not enabled yet.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio <Icon name="arrow" size={17} /></button></div></div>}
+      {showList && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Your decor list"><div className="api-modal"><button className="modal-close" onClick={() => setShowList(false)} aria-label="Close"><Icon name="close" size={18} /></button><h2>Your decor list</h2><p>{theme} · {roomType} · Budget ₹{formatPrice(budget)}</p>{cartProducts.length ? cartProducts.map(product => <div className="list-item" key={product.id}><div><b>{product.title}</b><p>{product.detail} · estimate ₹{formatPrice(product.price)}</p></div><button onClick={() => toggleCart(product.id)}>Remove</button></div>) : <p>Your list is empty. Add a sample piece from the studio.</p>}<p>Total estimate: ₹{formatPrice(cartTotal)} {cartTotal > budget ? "- over your budget" : "- within your budget"}</p><p>Sample prices only. No retailer links or checkout are available yet. This list is kept only until you refresh or leave.</p><button className="primary-button" onClick={() => { const blob = new Blob([`Roomly decor list\n${theme} | ${roomType}\nBudget: INR ${budget}\n${cartProducts.map(p => `${p.title} - INR ${p.price} (estimate)`).join("\n")}\nTotal estimate: INR ${cartTotal}\nSample items only. Verify prices before buying.`], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "roomly-decor-list.txt"; a.click(); URL.revokeObjectURL(url); }}>Download list</button></div></div>}
 
       {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}
     </main>
