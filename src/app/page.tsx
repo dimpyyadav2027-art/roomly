@@ -314,8 +314,25 @@ export default function HomePage() {
         <div className="studio-heading"><div><span className="section-kicker">YOUR MAKEOVER STUDIO</span><h2>Design the room <em>you’ve got.</em></h2></div><div className="secure-note"><Icon name="lock" size={15} /> Your photo stays on this device - it is never uploaded or saved</div></div>
 
         <div className="studio-layout">
+          <section className="canvas-panel">
+            <div className="canvas-topline"><div><span className="eyebrow-number">01</span><h3>Capture your space</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
+            <input ref={inputRef} onChange={handleUpload} type="file" accept="image/jpeg,image/png,image/webp" hidden />
+            {!uploadedImage && !generated && !isGenerating ? (
+              <button className="upload-dropzone" onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
+            ) : (
+              <div className="work-canvas">
+                <div className="canvas-photo before-photo" style={{ backgroundImage: `url(${roomImage})` }} />
+                {generated && <><div className="canvas-photo after-photo" style={{ backgroundImage: `url(${refreshedRoom})`, clipPath: `inset(0 0 0 ${comparison}%)` }} /><div className="comparison-line" style={{ left: `${comparison}%` }}><span /><input aria-label="Compare before and after" type="range" min="0" max="100" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} /></div><span className="compare-label before-label">BEFORE</span><span className="compare-label after-label">DEMO PREVIEW · {theme.toUpperCase()}</span></>}
+                {isGenerating && <div className="generation-overlay"><div className="scanline" /><div className="generating-card"><span className="generating-star"><Icon name="sparkle" size={20} /></span><b>Making it feel like yours</b><p>{progressText}</p><div className="loading-track"><span /></div></div></div>}
+                {!generated && !isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
+              </div>
+            )}
+            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}>{isGenerating ? <><span className="spinner" /> Creating your room</> : <><Icon name="sparkle" size={18} /> {generated ? "Show another sample preview" : "Create my makeover"}<span className="button-price">{tier === "pro" ? "₹150" : "Free"}</span></>}</button>
+            <p className="generation-note">Demo preview - live AI generation isn't connected yet, so the result is a sample styled from your choices, not a render of your actual photo.</p>
+          </section>
+
           <aside className="brief-panel">
-            <div className="panel-heading"><span className="eyebrow-number">01</span><h3>Your room brief</h3></div>
+            <div className="panel-heading"><span className="eyebrow-number">02</span><h3>Your room brief</h3></div>
 
             <label className="field-label">ROOM TYPE</label>
             <div className="select-wrap"><select value={roomType} onChange={(event) => setRoomType(event.target.value)}><option>Rented apartment</option><option>PG / shared room</option><option>Own house</option><option>Boutique hotel</option></select><Icon name="chevron" size={16} /></div>
@@ -332,23 +349,6 @@ export default function HomePage() {
               <button className="tier-option" onClick={() => notify("HD generation isn't available in this free demo yet - the Standard preview is shown.")}><span className="pro-label"><i><Icon name="zap" size={12} /></i><b>HD precision</b><small>₹150 · 1080p final · not in demo</small></span></button>
             </div>
           </aside>
-
-          <section className="canvas-panel">
-            <div className="canvas-topline"><div><span className="eyebrow-number">02</span><h3>Capture your space</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
-            <input ref={inputRef} onChange={handleUpload} type="file" accept="image/jpeg,image/png,image/webp" hidden />
-            {!uploadedImage && !generated && !isGenerating ? (
-              <button className="upload-dropzone" onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
-            ) : (
-              <div className="work-canvas">
-                <div className="canvas-photo before-photo" style={{ backgroundImage: `url(${roomImage})` }} />
-                {generated && <><div className="canvas-photo after-photo" style={{ backgroundImage: `url(${refreshedRoom})`, clipPath: `inset(0 0 0 ${comparison}%)` }} /><div className="comparison-line" style={{ left: `${comparison}%` }}><span /><input aria-label="Compare before and after" type="range" min="0" max="100" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} /></div><span className="compare-label before-label">BEFORE</span><span className="compare-label after-label">DEMO PREVIEW · {theme.toUpperCase()}</span></>}
-                {isGenerating && <div className="generation-overlay"><div className="scanline" /><div className="generating-card"><span className="generating-star"><Icon name="sparkle" size={20} /></span><b>Making it feel like yours</b><p>{progressText}</p><div className="loading-track"><span /></div></div></div>}
-                {!generated && !isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
-              </div>
-            )}
-            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}>{isGenerating ? <><span className="spinner" /> Creating your room</> : <><Icon name="sparkle" size={18} /> {generated ? "Recreate this look" : "Create my makeover"}<span className="button-price">{tier === "pro" ? "₹150" : "Free"}</span></>}</button>
-            <p className="generation-note">Demo preview - live AI generation isn't connected yet, so the result is a sample. {tier === "pro" ? "HD includes high-detail texture, lighting and export." : "Standard previews preserve your room’s structure."}</p>
-          </section>
 
           <aside className={`shop-panel ${generated ? "shop-ready" : ""}`}>
             <div className="panel-heading"><span className="eyebrow-number">03</span><h3>Make it happen</h3></div>
