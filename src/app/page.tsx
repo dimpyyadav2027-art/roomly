@@ -329,7 +329,7 @@ export default function HomePage() {
 
             <div className="tier-switcher">
               <button className={`tier-option ${tier === "standard" ? "selected" : ""}`} onClick={() => setTier("standard")}><span><b>Standard</b><small>Free · 720p preview</small></span>{tier === "standard" && <Icon name="check" size={16} />}</button>
-              <button className={`tier-option ${tier === "pro" ? "selected" : ""}`} onClick={() => setTier("pro")}><span className="pro-label"><i><Icon name="zap" size={12} /></i><b>HD precision</b><small>₹150 · 1080p final</small></span>{tier === "pro" && <Icon name="check" size={16} />}</button>
+              <button className="tier-option" onClick={() => notify("HD generation isn't available in this free demo yet - the Standard preview is shown.")}><span className="pro-label"><i><Icon name="zap" size={12} /></i><b>HD precision</b><small>₹150 · 1080p final · not in demo</small></span></button>
             </div>
           </aside>
 
