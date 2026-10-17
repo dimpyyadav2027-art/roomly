@@ -39,3 +39,13 @@ No fully verified free public route ready to enable. No new service account/toke
 ## Still unresolved
 - Google Cloud project/OAuth setup using MU identity: separately asked, not approved by the later UI-fix Okay. Held.
 - Original homework brief, domain expectation and deadline were not supplied; not claimed homework-ready.
+
+## Second improvement pass (22:59 IST)
+- User asked to make it better and send link when done. Public URL unchanged; UI commit ffef433, preview a2de33e.
+- Now a local room planner with four editorial style plans, six distinct ideas per style, named palettes and styling steps, deterministic within-budget selection, budget meter and Fit list action. All prices are illustrative allocations, not live retailer quotes. No image inference claimed.
+- Full-screen unchanged photo viewer, Escape close, wide two-column workspace with decor results below. Never substitutes a stock room for an uploaded/reloaded photo.
+- Explicit Save/Load/Clear on this device stores only theme, roomType, budget, cart IDs, generated flag under roomly-brief-v1. No photo or token stored. Photo must be selected again after refresh. This is browser-local storage, not cloud/account persistence.
+- Downloaded text plan includes items/totals, styling steps and palette values. File inspected after actual download.
+- Planner no longer calls POST /api/makeover or pretends to generate an image. The existing backend routes/auth isolation are unchanged. Protected backend test results above refer to those routes, not a cloud-save UI now present in production.
+- Live interaction tests passed at 390/1280, all four styles, budget fitting, file picker, unchanged photo, full photo viewer, local save/refresh/load/clear, real export. Extra responsive/budget tests at 360/820/1280 and budgets 2000/2500/6000/10000; no overflow/page errors/photo transfer. Actual pixels inspected for workspace/results/steps. Screenshots use a locally made synthetic room illustration as the test input, not a claimed AI output.
+- Public AI/auth and prior account/OAuth consent gaps remain; no provider setup, paid services, or user-photo transfer occurred.
