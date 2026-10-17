@@ -8,7 +8,11 @@ const globalForDb = globalThis as typeof globalThis & {
 };
 
 export function hasDatabase() {
-  return Boolean(process.env.DATABASE_URL);
+  // Persistence is opt-in per deployment. The public demo runs fully
+  // stateless: no database rows and no photo uploads, even if database
+  // env vars are present. Set ENABLE_PERSISTENCE=true (with proper auth)
+  // to turn storage back on.
+  return process.env.ENABLE_PERSISTENCE === "true" && Boolean(process.env.DATABASE_URL);
 }
 
 export function getPool(): Pool {

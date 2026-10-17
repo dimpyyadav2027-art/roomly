@@ -181,7 +181,9 @@ export default function HomePage() {
           budget,
           tier: tier === "pro" ? "PAID_150" : "FREE",
           roomType,
-          image: uploadedImage,
+          // The room photo never leaves the device in the current demo:
+          // it is used for the local before/after preview only and is not
+          // sent to the server.
         }),
       });
       const data = (await response.json()) as { configured?: boolean; mode?: string; message?: string };
@@ -275,7 +277,7 @@ export default function HomePage() {
       )}
 
       <section className={`studio-section ${view === "studio" ? "studio-active" : ""}`} id="studio">
-        <div className="studio-heading"><div><span className="section-kicker">YOUR MAKEOVER STUDIO</span><h2>Design the room <em>you’ve got.</em></h2></div><div className="secure-note"><Icon name="lock" size={15} /> Your photo is used only to create your design</div></div>
+        <div className="studio-heading"><div><span className="section-kicker">YOUR MAKEOVER STUDIO</span><h2>Design the room <em>you’ve got.</em></h2></div><div className="secure-note"><Icon name="lock" size={15} /> Your photo stays on this device - it is never uploaded or saved</div></div>
 
         <div className="studio-layout">
           <aside className="brief-panel">
