@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/db";
 import { makeovers } from "@/db/schema";
+import { getSessionUser } from "@/lib/auth";
+import { users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const [row] = await getDb().select().from(makeovers).where(eq(makeovers.id, id)).limit(1);
   if (!row) {
+    return NextResponse.json({ error: "Makeover not found." }, { status: 404 });
+  }
+
+  // Owner-scoped access: a persisted makeover (including its room photo) is
+  // visible only to the signed-in account that created it. Everyone else -
+  // signed-in or not - gets the same 404 as a nonexistent record, so record
+  // existence is not leaked.
+  const sessionUser = await getSessionUser(_request);
+  let ownerEmail: string | undefined;
+  if (row.userId) {
+    const [owner] = await getDb().select().from(users).where(eq(users.id, row.userId)).limit(1);
+    ownerEmail = owner?.email;
+  }
+  const isOwner = Boolean(sessionUser && ownerEmail && sessionUser.email === ownerEmail);
+  if (!isOwner) {
     return NextResponse.json({ error: "Makeover not found." }, { status: 404 });
   }
 

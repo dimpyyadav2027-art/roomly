@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/db";
-import { makeovers } from "@/db/schema";
+import { makeovers, users } from "@/db/schema";
 import { uploadRoomPhoto } from "@/lib/supabase";
+import { getSessionUser } from "@/lib/auth";
 
 // Best-effort per-IP rate limit (in-memory per serverless instance): 20 requests/hour.
 const hits = new Map<string, { count: number; reset: number }>();
@@ -70,10 +71,28 @@ export async function POST(request: NextRequest) {
   // Postgres). The demo still works without one.
   let makeoverId: string | undefined;
   if (hasDatabase()) {
+    // Persistence requires a signed-in owner. Records and photos are scoped
+    // to the account that created them; anonymous requests stay stateless.
+    const sessionUser = await getSessionUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { error: "Sign in to save your makeover.", mode: "auth_required" },
+        { status: 401 },
+      );
+    }
     try {
+      if (sessionUser.email) {
+        await getDb()
+          .insert(users)
+          .values({ email: sessionUser.email })
+          .onConflictDoNothing();
+      }
+      const [owner] = sessionUser.email
+        ? await getDb().select().from(users).where(eq(users.email, sessionUser.email)).limit(1)
+        : [undefined];
       const [row] = await getDb()
         .insert(makeovers)
-        .values({ roomType, theme, budget, tier, prompt, status: "queued" })
+        .values({ roomType, theme, budget, tier, prompt, status: "queued", userId: owner?.id ?? null })
         .returning({ id: makeovers.id });
       makeoverId = row.id;
       if (image) {
