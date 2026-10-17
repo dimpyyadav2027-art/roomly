@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 
 type IconName =
@@ -127,6 +128,36 @@ export default function HomePage() {
   const [budget, setBudget] = useState(6000);
   const [comparison, setComparison] = useState(49);
   const [generated, setGenerated] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInSent, setSignInSent] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSessionEmail(data.session?.user.email ?? null);
+      setSessionToken(data.session?.access_token ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionEmail(session?.user.email ?? null);
+      setSessionToken(session?.access_token ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const sendMagicLink = async () => {
+    const supabase = getSupabaseBrowser();
+    const email = signInEmail.trim();
+    if (!supabase || !email) return;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) notify("Could not send the sign-in link - please try again.");
+    else setSignInSent(true);
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [progressText, setProgressText] = useState("Reading room geometry");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0]);
@@ -175,7 +206,10 @@ export default function HomePage() {
     try {
       const response = await fetch("/api/makeover", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({
           prompt: theme,
           budget,
@@ -224,7 +258,7 @@ export default function HomePage() {
           <button onClick={() => setShowApi(true)}>For builders</button>
         </nav>
         <div className="nav-actions">
-          <button className="text-button" onClick={() => setShowSignIn(true)}>Sign in</button>
+          <button className="text-button" onClick={() => setShowSignIn(true)}>{sessionEmail ? sessionEmail : "Sign in"}</button>
           <button className="mini-primary" onClick={goToStudio}>Try it free <Icon name="arrow" size={15} /></button>
         </div>
       </header>
@@ -335,7 +369,7 @@ export default function HomePage() {
 
       <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><a href="#how-it-works">How it works</a><button onClick={() => setShowApi(true)}>For builders</button></div></footer>
 
-      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close"><Icon name="close" size={18} /></button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign in to keep your makeover boards, shopping lists and HD creations in one place.</p><button className="social-login" onClick={() => { setShowSignIn(false); notify("Welcome back — your space is ready."); }}><span className="google-g">G</span> Continue with Google</button><button className="email-login" onClick={() => { setShowSignIn(false); notify("A secure sign-in link is on its way."); }}>Continue with email <Icon name="arrow" size={16} /></button><small>By continuing, you agree to roomly’s Terms and Privacy Policy.</small></div></div>}
+      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close"><Icon name="close" size={18} /></button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign in to keep your makeover boards, shopping lists and HD creations in one place.</p>{signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email <Icon name="arrow" size={16} /></button></>}<small>By continuing, you agree to roomly’s Terms and Privacy Policy.</small></div></div>}
 
       {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Replicate API setup"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close"><Icon name="close" size={18} /></button><span className="section-kicker">REPLICATE + CONTROLNET</span><h2>Ship the structure-aware workflow.</h2><p>Set your server-only token and a compatible image-to-image ControlNet model. Roomly sends the original room image, a room-specific prompt and the selected quality tier through the protected route.</p><div className="env-card"><span>.env.local</span><code>REPLICATE_API_TOKEN=r8_••••••••<br />REPLICATE_MODEL=owner/controlnet-inpaint-model</code></div><ol className="api-steps"><li><b>Capture the whole room.</b><span>Send the image as a data URL or upload it to durable storage first.</span></li><li><b>Preserve what is permanent.</b><span>Use your model’s depth / segmentation and mask inputs to keep layout intact.</span></li><li><b>Start a prediction securely.</b><span>The included <code>/api/makeover</code> route uses Bearer auth and <code>Prefer: wait=60</code>.</span></li><li><b>Match the generated objects.</b><span>Resolve product matches server-side before rendering tappable hotspots.</span></li></ol><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio <Icon name="arrow" size={17} /></button></div></div>}
 
