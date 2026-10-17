@@ -238,7 +238,7 @@ export default function HomePage() {
                 <h1>See your room’s<br /><em>next version.</em></h1>
                 <p className="hero-text">Upload the room you have. Discover the space it could become — with a makeover you can actually shop and a budget you can actually keep.</p>
                 <div className="hero-actions">
-                  <button className="primary-button" onClick={goToStudio}>Start your makeover <Icon name="arrow" size={18} /></button>
+                  <button className="primary-button" onClick={goToStudio}>Start your makeover <Icon name="arrow" size={18} /></button><p className="generation-note hero-demo-note">Free demo preview - live AI generation isn't connected yet.</p>
                   <button className="watch-button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}><span className="play-dot"><Icon name="play" size={12} /></span> How it works</button>
                 </div>
                 <div className="proof-line"><span className="faces"><i>R</i><i>A</i><i>N</i><i>J</i></span><span><b>Made for</b> renters, PGs &amp; first homes</span></div>
@@ -313,7 +313,7 @@ export default function HomePage() {
               </div>
             )}
             <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}>{isGenerating ? <><span className="spinner" /> Creating your room</> : <><Icon name="sparkle" size={18} /> {generated ? "Recreate this look" : "Create my makeover"}<span className="button-price">{tier === "pro" ? "₹150" : "Free"}</span></>}</button>
-            <p className="generation-note">{tier === "pro" ? "HD includes high-detail texture, lighting and export." : "Standard previews preserve your room’s structure."}</p>
+            <p className="generation-note">Demo preview - live AI generation isn't connected yet, so the result is a sample. {tier === "pro" ? "HD includes high-detail texture, lighting and export." : "Standard previews preserve your room’s structure."}</p>
           </section>
 
           <aside className={`shop-panel ${generated ? "shop-ready" : ""}`}>
