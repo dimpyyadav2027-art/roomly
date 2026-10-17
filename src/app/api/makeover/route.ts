@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, count } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/db";
 import { makeovers, users } from "@/db/schema";
 import { uploadRoomPhoto } from "@/lib/supabase";
@@ -90,6 +90,20 @@ export async function POST(request: NextRequest) {
       const [owner] = sessionUser.email
         ? await getDb().select().from(users).where(eq(users.email, sessionUser.email)).limit(1)
         : [undefined];
+      // Durable per-user abuse control (database-backed, survives serverless
+      // instances): at most 20 persisted makeovers per account per 24 hours.
+      if (owner?.id) {
+        const [{ value: recent }] = await getDb()
+          .select({ value: count() })
+          .from(makeovers)
+          .where(and(eq(makeovers.userId, owner.id), gte(makeovers.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))));
+        if (recent >= 20) {
+          return NextResponse.json(
+            { error: "Daily makeover limit reached. Please try again tomorrow." },
+            { status: 429 },
+          );
+        }
+      }
       const [row] = await getDb()
         .insert(makeovers)
         .values({ roomType, theme, budget, tier, prompt, status: "queued", userId: owner?.id ?? null })
