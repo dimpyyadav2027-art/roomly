@@ -184,8 +184,9 @@ export default function HomePage() {
           image: uploadedImage,
         }),
       });
-      const data = (await response.json()) as { configured?: boolean; message?: string };
+      const data = (await response.json()) as { configured?: boolean; mode?: string; message?: string };
       if (data.configured) notify("Your Replicate prediction has started — demo result shown while it runs.");
+      else if (data.mode === "demo") notify("Demo preview - live AI generation isn't connected yet.");
     } catch {
       // The interface remains usable in demo mode if the local API is unavailable.
     } finally {
@@ -304,7 +305,7 @@ export default function HomePage() {
             ) : (
               <div className="work-canvas">
                 <div className="canvas-photo before-photo" style={{ backgroundImage: `url(${roomImage})` }} />
-                {generated && <><div className="canvas-photo after-photo" style={{ backgroundImage: `url(${refreshedRoom})`, clipPath: `inset(0 0 0 ${comparison}%)` }} /><div className="comparison-line" style={{ left: `${comparison}%` }}><span /><input aria-label="Compare before and after" type="range" min="0" max="100" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} /></div><span className="compare-label before-label">BEFORE</span><span className="compare-label after-label">AFTER · {theme.toUpperCase()}</span></>}
+                {generated && <><div className="canvas-photo after-photo" style={{ backgroundImage: `url(${refreshedRoom})`, clipPath: `inset(0 0 0 ${comparison}%)` }} /><div className="comparison-line" style={{ left: `${comparison}%` }}><span /><input aria-label="Compare before and after" type="range" min="0" max="100" value={comparison} onChange={(event) => setComparison(Number(event.target.value))} /></div><span className="compare-label before-label">BEFORE</span><span className="compare-label after-label">DEMO PREVIEW · {theme.toUpperCase()}</span></>}
                 {isGenerating && <div className="generation-overlay"><div className="scanline" /><div className="generating-card"><span className="generating-star"><Icon name="sparkle" size={20} /></span><b>Making it feel like yours</b><p>{progressText}</p><div className="loading-track"><span /></div></div></div>}
                 {!generated && !isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
               </div>

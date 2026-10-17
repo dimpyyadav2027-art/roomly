@@ -4,6 +4,21 @@ import { getDb, hasDatabase } from "@/db";
 import { makeovers } from "@/db/schema";
 import { uploadRoomPhoto } from "@/lib/supabase";
 
+// Best-effort per-IP rate limit (in-memory per serverless instance): 20 requests/hour.
+const hits = new Map<string, { count: number; reset: number }>();
+function rateLimited(ip: string) {
+  const now = Date.now();
+  const entry = hits.get(ip);
+  if (!entry || entry.reset < now) {
+    hits.set(ip, { count: 1, reset: now + 60 * 60 * 1000 });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > 20;
+}
+
+const MAX_IMAGE_CHARS = 10 * 1024 * 1024; // ~7.5MB binary as base64
+
 type MakeoverRequest = {
   prompt?: unknown;
   budget?: unknown;
@@ -25,15 +40,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "The makeover request must be valid JSON." }, { status: 400 });
   }
 
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (rateLimited(ip)) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
   const theme = text(body.prompt, "warm minimal");
   const roomType = text(body.roomType, "rented apartment");
   const tier = body.tier === "PAID_150" ? "PAID_150" : "FREE";
   const budget = typeof body.budget === "number" && Number.isFinite(body.budget)
     ? Math.min(Math.max(Math.round(body.budget), 2000), 10000)
     : 6000;
-  const image = typeof body.image === "string" && body.image.startsWith("data:image/")
+  const image = typeof body.image === "string" && body.image.startsWith("data:image/") && body.image.length <= MAX_IMAGE_CHARS
     ? body.image
     : undefined;
+  if (typeof body.image === "string" && body.image.startsWith("data:image/") && body.image.length > MAX_IMAGE_CHARS) {
+    return NextResponse.json({ error: "Please use a room photo under 7 MB." }, { status: 413 });
+  }
 
   const resolution = tier === "PAID_150" ? "1080p HD" : "720p";
   const prompt = [
