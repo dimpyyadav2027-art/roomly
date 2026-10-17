@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, jsonb, date, primaryKey } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -25,6 +25,19 @@ export const makeovers = pgTable("makeovers", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Durable atomic per-user daily cap: one row per user per UTC day. The route
+// increments it with an INSERT ... ON CONFLICT ... WHERE n < limit, which takes
+// a row lock on conflict, so concurrent requests cannot both pass the check.
+export const dailyCaps = pgTable(
+  "daily_caps",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    day: date("day").notNull().defaultNow(),
+    n: integer("n").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
 
 export type Makeover = typeof makeovers.$inferSelect;
 export type NewMakeover = typeof makeovers.$inferInsert;

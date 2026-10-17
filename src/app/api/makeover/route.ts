@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, gte, count } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/db";
 import { makeovers, users } from "@/db/schema";
 import { uploadRoomPhoto } from "@/lib/supabase";
@@ -91,13 +91,16 @@ export async function POST(request: NextRequest) {
         ? await getDb().select().from(users).where(eq(users.email, sessionUser.email)).limit(1)
         : [undefined];
       // Durable per-user abuse control (database-backed, survives serverless
-      // instances): at most 20 persisted makeovers per account per 24 hours.
+      // instances): at most 20 persisted makeovers per account per UTC day.
+      // Atomic: the conflicting upsert takes a row lock, so concurrent
+      // requests cannot both pass the check.
       if (owner?.id) {
-        const [{ value: recent }] = await getDb()
-          .select({ value: count() })
-          .from(makeovers)
-          .where(and(eq(makeovers.userId, owner.id), gte(makeovers.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))));
-        if (recent >= 20) {
+        const capResult = (await getDb().execute(sql`
+          insert into daily_caps (user_id, day, n) values (${owner.id}, current_date, 1)
+          on conflict (user_id, day) do update set n = daily_caps.n + 1
+          where daily_caps.n < 20
+          returning n`)) as unknown as { rows?: unknown[] };
+        if (!capResult.rows || capResult.rows.length === 0) {
           return NextResponse.json(
             { error: "Daily makeover limit reached. Please try again tomorrow." },
             { status: 429 },
