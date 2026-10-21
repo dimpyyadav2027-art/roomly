@@ -279,7 +279,7 @@ export default function HomePage() {
               <button className="upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
             ) : (
               <div className="work-canvas">
-                <div className="canvas-photo" style={{ backgroundImage: `url(${roomImage})` }} />
+                <div className="canvas-photo" data-clarity-mask="true" style={{ backgroundImage: `url(${roomImage})` }} />
                 {generated && <span className="compare-label after-label">ORIGINAL PHOTO · UNCHANGED</span>}
                 <button className="expand-photo" onClick={() => setShowPhoto(true)}>Expand photo</button>
                 {!isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
@@ -320,7 +320,7 @@ export default function HomePage() {
       </section>
 
       {view === "studio" && <section className="styling-section"><div className="styling-heading"><span className="section-kicker">YOUR {theme.toUpperCase()} DIRECTION</span><h2>{plan.tagline}</h2><p>Editorial guidance for your chosen style, not an analysis of your photo.</p></div><div className="styling-steps">{plan.steps.map((step, i) => <article key={step}><span>0{i + 1}</span><p>{step}</p></article>)}</div><div className="renter-note"><Icon name="info" size={18} /><p>{roomType === "PG / shared room" || roomType === "Rented apartment" ? "Renting? Start with movable pieces. Check your agreement before drilling, painting or using adhesives; removable does not always mean damage-free." : "Before buying: measure your space, check power points and clear walking routes. These are styling ideas, not a measured floor plan."}</p></div></section>}
-      {showPhoto && <div className="photo-viewer" role="dialog" aria-modal="true" aria-label="Full room photo"><button onClick={() => setShowPhoto(false)} aria-label="Close full photo"><Icon name="close" size={22} /> Close</button><img src={roomImage} alt="Your original room photo, unchanged" /><p>Original photo. No AI changes. Only visible on this device.</p></div>}
+      {showPhoto && <div className="photo-viewer" data-clarity-mask="true" role="dialog" aria-modal="true" aria-label="Full room photo"><button onClick={() => setShowPhoto(false)} aria-label="Close full photo"><Icon name="close" size={22} /> Close</button><img src={roomImage} alt="Your original room photo, unchanged" /><p>Original photo. No AI changes. Only visible on this device.</p></div>}
 
       <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }), 30); }}>How it works</button><button onClick={() => setShowApi(true)}>Feature status</button></div></footer>
 

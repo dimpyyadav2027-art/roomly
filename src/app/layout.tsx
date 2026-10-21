@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import ClarityConsent from "@/components/ClarityConsent";
 
 export const metadata: Metadata = {
   title: "Roomly — real room makeovers",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>{children}<ClarityConsent /></body>
     </html>
   );
 }
