@@ -25,8 +25,9 @@ function loadClarity() {
   } else {
     document.head.appendChild(script);
   }
-  // Tell Clarity the visitor has accepted analytics cookies (Consent API).
-  w.clarity("consent");
+  // Tell Clarity the visitor has accepted analytics cookies (ConsentV2 API).
+  // Analytics only - no advertising consent is requested or granted.
+  w.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" });
 }
 
 export default function ClarityConsent() {
