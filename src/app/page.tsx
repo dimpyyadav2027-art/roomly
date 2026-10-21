@@ -157,14 +157,14 @@ export default function HomePage() {
       notify("For the best result, use a room photo under 7 MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setUploadedImage(String(reader.result));
-      setGenerated(false);
-      notify("Room photo ready. Your layout stays private.");
-    };
-    reader.onerror = () => notify("Could not open this photo. Please try another JPG, PNG or WEBP.");
-    reader.readAsDataURL(file);
+    // Use an object URL, never a data URL: object URLs carry no image bytes,
+    // so analytics style/attribute capture can never exfiltrate the photo.
+    setUploadedImage((previous) => {
+      if (previous && previous.startsWith("blob:")) URL.revokeObjectURL(previous);
+      return URL.createObjectURL(file);
+    });
+    setGenerated(false);
+    notify("Room photo ready. Your layout stays private.");
   };
 
   const fitBudget = () => {

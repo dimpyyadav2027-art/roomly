@@ -5,6 +5,22 @@ import { useEffect, useState } from "react";
 const CONSENT_KEY = "roomly-analytics-consent";
 const CLARITY_ID = "z12bx6klis";
 
+// Master switch: Clarity stays OFF for all visitors until the photo-safety fix
+// (object-URL photo rendering, so no image bytes can reach the collector) is verified.
+const CLARITY_ENABLED = false;
+// Synthetic-only verification route: a controlled test session can set
+// localStorage "roomly-clarity-test" = "1" to load Clarity while the master switch is off.
+const TEST_KEY = "roomly-clarity-test";
+
+function clarityAllowed() {
+  if (CLARITY_ENABLED) return true;
+  try {
+    return window.localStorage.getItem(TEST_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 type ClarityFn = ((...args: unknown[]) => void) & { q?: unknown[] };
 type ClarityWindow = Window & { clarity?: ClarityFn };
 
@@ -40,6 +56,7 @@ export default function ClarityConsent() {
     } catch {
       stored = null;
     }
+    if (!clarityAllowed()) return; // analytics disabled - do not prompt or load
     if (stored === "accepted") {
       loadClarity();
     } else if (stored !== "declined") {
@@ -54,7 +71,7 @@ export default function ClarityConsent() {
       // Private mode etc. - choice applies to this visit only.
     }
     setVisible(false);
-    if (accepted) loadClarity();
+    if (accepted && clarityAllowed()) loadClarity();
   };
 
   if (!visible) return null;
