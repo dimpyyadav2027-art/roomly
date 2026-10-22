@@ -81,8 +81,16 @@ function formatPrice(amount: number) {
 }
 
 export default function HomePage() {
+  const pageRef = useRef<HTMLElement>(null);
+  const [motion, setMotion] = useState(true);
   const [view, setView] = useState<"landing" | "studio">("landing");
   
+  useEffect(() => {
+    if (!motion || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const animations = Array.from(pageRef.current?.querySelectorAll('.hero-copy h1 span, .hero-frame, .shop-ready') || []).map((el, i) => el.animate([{ transform: 'translateY(18px)' }, { transform: 'translateY(0)' }], { duration: 650, delay: i * 75, easing: 'cubic-bezier(.2,.7,.3,1)' }));
+    return () => animations.forEach(a => a.cancel());
+  }, [view, motion]);
+
   const [roomType, setRoomType] = useState("Rented apartment");
   const [theme, setTheme] = useState<keyof typeof stylePlans>("Warm minimal");
   const plan = stylePlans[theme];
@@ -201,23 +209,23 @@ export default function HomePage() {
 
   const goToStudio = () => {
     setView("studio");
-    window.setTimeout(() => document.getElementById("studio")?.scrollIntoView({ behavior: "smooth", block: "start" }), 20);
+    window.setTimeout(() => document.getElementById("studio")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto", block: "start" }), 20);
   };
 
   return (
-    <main>
+    <main ref={pageRef} className={motion ? "motion-on" : "motion-off"}>
       <header className="topbar">
         <button className="brand" onClick={() => setView("landing")} aria-label="Roomly home">
           <span className="brand-mark"><span /></span>
           <span>roomly</span>
         </button>
         <nav className="main-nav" aria-label="Main navigation">
-          <button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }), 30); }}>How it works</button>
+          <button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" }), 30); }}>How it works</button>
           <button onClick={() => setShowApi(true)}>Feature status</button>
         </nav>
-        <div className="nav-actions">
+        <div className="nav-actions"><button className="motion-switch" aria-pressed={!motion} onClick={() => setMotion(!motion)}>{motion ? "Reduce motion" : "Motion off"}</button>
           <button className="text-button" onClick={() => setShowSignIn(true)}>{sessionEmail ? sessionEmail : "Sign in"}</button>
-          <button className="mini-primary" onClick={goToStudio}>Try it free <Icon name="arrow" size={15} /></button>
+          <button className="mini-primary" onClick={goToStudio}>Try it free </button>
         </div>
       </header>
 
@@ -226,44 +234,26 @@ export default function HomePage() {
           <section className="hero-shell">
             <div className="hero-grid">
               <div className="hero-copy">
-                <div className="eyebrow"><span className="eyebrow-dot" /> Design intelligence for real homes</div>
-                <h1>See your room’s<br /><em>next version.</em></h1>
-                <p className="hero-text">Upload the room you have. Discover the space it could become - with a simple decor planning workspace. Live AI redesign is not connected yet.</p>
-                <div className="hero-actions">
-                  <button className="primary-button" onClick={goToStudio}>Start your makeover <Icon name="arrow" size={18} /></button><p className="generation-note hero-demo-note">Free room planner. No account needed. AI image redesign is not enabled.</p>
-                  <button className="watch-button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}><span className="play-dot"><Icon name="play" size={12} /></span> How it works</button>
-                </div>
-                <div className="proof-line"><Icon name="check" size={18} /><span><b>Made for</b> renters, PGs &amp; first homes</span></div>
+                <div className="eyebrow">REAL ROOMS. FRESH IDEAS.</div>
+                <h1><span>Come home</span><span>to a room</span><span>you love.</span></h1>
+                <p className="hero-text">A brighter corner. A softer landing. Start with your room, choose what feels right and make a plan within your budget.</p>
+                <div className="hero-actions"><button className="primary-button" onClick={goToStudio}>Start your makeover</button></div>
+                <p className="generation-note hero-demo-note">Free room planner. No account needed.<br />AI image redesign is not enabled.</p>
               </div>
-
-              <div className="hero-visual" aria-label="Sample room with a warm minimal styling mood">
-                <div className="hero-badge"><Icon name="sparkle" size={15} /> Room planning studio</div>
-                <div className="hero-frame">
-                  <div className="hero-room-image" style={{ backgroundImage: `url(${baseRoom})` }} />
-                  <div className="hero-wash" />
-                  <div className="hero-caption hero-caption-top"><span>SAMPLE</span><b>Stock photo</b></div>
-                  <div className="hero-caption hero-caption-bottom"><span>MOOD</span><b>Warm minimal</b></div>
-                  <div className="style-stamp"><span>01</span><div><b>Made for<br />your life.</b><small>Not a moodboard.</small></div></div>
-                </div>
-                <div className="floating-note note-one"><span className="note-icon rust"><Icon name="sparkle" size={14} /></span><div><small>YOUR VIBE</small><b>Warm minimal</b></div></div>
-                <div className="floating-note note-two"><span className="note-icon olive"><Icon name="check" size={14} /></span><div><small>EXAMPLE MOOD</small><b>Decor inspiration</b></div></div>
+              <div className="hero-visual" aria-label="Sample room, stock photo">
+                <div className="hero-frame"><div className="hero-room-image" style={{ backgroundImage: `url(${baseRoom})` }} /><div className="hero-wash" /><div className="homely-caption"><b>A little more<br />at home.</b><small>Stock photo - not an AI result</small></div></div>
+                <p className="homely-palette"><i /><i /><i /><span>Warm light. Soft textures. Natural tones.</span></p><p className="homely-note">Your space, at your pace.</p>
               </div>
             </div>
           </section>
-
-          <section className="trust-strip">
-            <span>Built for the way homes actually are</span>
-            <div><b>PHOTO STAYS ON DEVICE</b><b>EDITABLE DECOR LIST</b><b>INDIA-READY BUDGETS</b></div>
-          </section>
-
           <section className="steps-section" id="how-it-works">
-            <div className="section-kicker">A REALISTIC PATH TO A NEW ROOM</div>
-            <div className="steps-heading"><h2>Not a fantasy render.<br />A plan for <em>your space.</em></h2><p>Keep your real room photo in view while you choose a style and budget. Explore an editable sample decor list. AI image redesign is not connected yet.</p></div>
+            <div className="section-kicker">A PLAN FOR YOUR REAL LIFE</div>
+            <div className="steps-heading"><h2>A room you like.<br />A budget you choose.<br />A little more you.</h2></div>
             <div className="steps-grid">
-              <article className="step-card"><span className="step-number">01</span><div className="step-icon"><Icon name="camera" size={21} /></div><h3>Show us the room</h3><p>Snap, upload, or start with the space you live in now.</p><button className="step-link" onClick={goToStudio}>Your room, safely held <Icon name="arrow" size={15} /></button></article>
-              <article className="step-card featured-step"><span className="step-number">02</span><div className="step-icon"><Icon name="sliders" size={21} /></div><h3>Set the brief</h3><p>Choose a vibe, room type, and a spend that feels comfortable.</p><button className="step-link" onClick={goToStudio}>No expert words needed <Icon name="arrow" size={15} /></button></article>
-              <article className="step-card"><span className="step-number">03</span><div className="step-icon"><Icon name="bag" size={21} /></div><h3>Make it real</h3><p>Tap any piece you love, then download your sample decor list.</p><button className="step-link" onClick={goToStudio}>Edit your decor list <Icon name="arrow" size={15} /></button></article>
-            </div>
+              <article className="step-card"><span className="step-number">01</span><h3>Your room</h3><p>Bring your original room photo. It stays unchanged and on your device.</p></article>
+              <article className="step-card"><span className="step-number">02</span><h3>Your direction</h3><p>Choose a style, room type and comfortable decor budget.</p></article>
+              <article className="step-card"><span className="step-number">03</span><h3>Your edit</h3><p>Explore curated ideas, edit your list and download your plan.</p></article>
+            </div><button className="primary-button" onClick={goToStudio}>Explore the studio</button>
           </section>
         </>
       )}
@@ -276,17 +266,17 @@ export default function HomePage() {
             <div className="canvas-topline"><div><span className="eyebrow-number">01</span><h3>Your room, unchanged</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
             <input ref={inputRef} onChange={handleUpload} type="file" accept="image/jpeg,image/png,image/webp" hidden />
             {!uploadedImage ? (
-              <button className="upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onClick={() => inputRef.current?.click()}><span className="upload-icon"><Icon name="upload" size={24} /></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
+              <button className="upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onClick={() => inputRef.current?.click()}><span className="upload-icon"></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
             ) : (
               <div className="work-canvas">
                 <div className="canvas-photo" data-clarity-mask="true" style={{ backgroundImage: `url(${roomImage})` }} />
                 {generated && <span className="compare-label after-label">ORIGINAL PHOTO · UNCHANGED</span>}
                 <button className="expand-photo" onClick={() => setShowPhoto(true)}>Expand photo</button>
-                {!isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> Change photo</button>}
+                {!isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}> Change photo</button>}
               </div>
             )}
-            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><><Icon name="sliders" size={18} /> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
-            {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: "smooth" })}>View my decor edit ↓</button>}
+            <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
+            {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" })}>View my decor edit</button>}
             <p className="generation-note">A real planning tool, not an AI render. Your original photo stays unchanged; the style plan is based on curated ideas and illustrative prices.</p>
           </section>
 
@@ -297,7 +287,7 @@ export default function HomePage() {
             <div className="select-wrap"><select aria-label="Room type" value={roomType} onChange={(event) => setRoomType(event.target.value)}><option>Rented apartment</option><option>PG / shared room</option><option>Own house</option><option>Boutique hotel</option></select><Icon name="chevron" size={16} /></div>
 
             <label className="field-label">STYLE DIRECTION</label>
-            <div className="theme-list">{themes.map((item) => <button className={`theme-choice ${theme === item.name ? "selected" : ""}`} key={item.name} onClick={() => { setTheme(item.name as keyof typeof stylePlans); setCart([]); setGenerated(false); }}><span className="theme-swatch" style={{ background: item.swatch }} />{item.name}{theme === item.name && <Icon name="check" size={15} />}</button>)}</div>
+            <div className="theme-list">{themes.map((item) => <button className={`theme-choice ${theme === item.name ? "selected" : ""}`} key={item.name} aria-pressed={theme === item.name} onClick={() => { setTheme(item.name as keyof typeof stylePlans); setCart([]); setGenerated(false); }}><span className="theme-swatch" style={{ background: item.swatch }} />{item.name}</button>)}</div>
 
             <label className="field-label budget-label">TOTAL DECOR BUDGET <span>₹{formatPrice(budget)}</span></label>
             <input aria-label="Decor budget" className="budget-range" type="range" min="2000" max="10000" step="500" value={budget} onChange={(event) => setBudget(Number(event.target.value))} style={{ "--range-progress": `${((budget - 2000) / 8000) * 100}%` } as CSSProperties} />
@@ -312,22 +302,22 @@ export default function HomePage() {
             {generated ? <>
               <p className="shop-intro">Curated {theme.toLowerCase()} ideas. Illustrative budget allocations, not live prices or objects detected in your photo.</p>
               <div className="budget-card"><span>{cartTotal > budget ? "Over your budget" : "Your budget, in view"}</span><strong>₹{formatPrice(cartTotal)} <small>/ ₹{formatPrice(budget)}</small></strong><div className="budget-track"><i style={{ width: `${Math.min(100, cartTotal / budget * 100)}%`, background: cartTotal > budget ? "#b9502e" : "#7d8b58" }} /></div><p>{cartTotal > budget ? `Remove ₹${formatPrice(cartTotal - budget)} to fit your budget.` : `₹${formatPrice(budget - cartTotal)} left for delivery or other changes.`}</p><button onClick={() => { fitBudget(); notify("List adjusted to fit your budget."); }}>Fit list to my budget</button></div>
-              <div className="decor-cards">{products.map(product => <button key={product.id} className={`decor-card ${cart.includes(product.id) ? "in-list" : ""}`} onClick={() => toggleCart(product.id)} aria-pressed={cart.includes(product.id)} aria-label={`${cart.includes(product.id) ? "Remove" : "Add"} ${product.title}`}><span className="decor-symbol"><Icon name={product.category === "Lighting" ? "zap" : product.category === "Storage" ? "bag" : product.category === "Wall story" ? "sliders" : "heart"} size={19} /></span><span><small>{product.category}</small><b>{product.title}</b><em>{product.detail}</em><strong>₹{formatPrice(product.price)} <small>allocation</small></strong></span><span className="decor-toggle">{cart.includes(product.id) ? "✓" : "+"}</span></button>)}</div>
-              <div className="cart-summary"><div><span>Your edit list</span><b>{cart.length} pieces · ₹{formatPrice(cartTotal)}</b></div><button onClick={() => setShowList(true)}>View list <Icon name="arrow" size={14} /></button></div>
+              <div className="decor-cards">{products.map(product => <button key={product.id} className={`decor-card ${cart.includes(product.id) ? "in-list" : ""}`} onClick={() => toggleCart(product.id)} aria-pressed={cart.includes(product.id)} aria-label={`${cart.includes(product.id) ? "Remove" : "Add"} ${product.title}`}><span className="decor-symbol"></span><span><small>{product.category}</small><b>{product.title}</b><em>{product.detail}</em><strong>₹{formatPrice(product.price)} <small>allocation</small></strong></span><span className="decor-toggle">{cart.includes(product.id) ? "Added" : "Add"}</span></button>)}</div>
+              <div className="cart-summary"><div><span>Your edit list</span><b>{cart.length} pieces · ₹{formatPrice(cartTotal)}</b></div><button onClick={() => setShowList(true)}>View list </button></div>
             </> : <div className="shop-empty"><div><Icon name="bag" size={24} /></div><b>Your shopping edit lives here</b><p>Choose a style and budget, then build a plan. Get a color palette, styling steps and an editable list that starts within budget.</p><span><Icon name="info" size={14} /> Sample prices - confirm before buying</span></div>}
           </aside>
         </div>
       </section>
 
       {view === "studio" && <section className="styling-section"><div className="styling-heading"><span className="section-kicker">YOUR {theme.toUpperCase()} DIRECTION</span><h2>{plan.tagline}</h2><p>Editorial guidance for your chosen style, not an analysis of your photo.</p></div><div className="styling-steps">{plan.steps.map((step, i) => <article key={step}><span>0{i + 1}</span><p>{step}</p></article>)}</div><div className="renter-note"><Icon name="info" size={18} /><p>{roomType === "PG / shared room" || roomType === "Rented apartment" ? "Renting? Start with movable pieces. Check your agreement before drilling, painting or using adhesives; removable does not always mean damage-free." : "Before buying: measure your space, check power points and clear walking routes. These are styling ideas, not a measured floor plan."}</p></div></section>}
-      {showPhoto && <div className="photo-viewer" data-clarity-mask="true" role="dialog" aria-modal="true" aria-label="Full room photo"><button onClick={() => setShowPhoto(false)} aria-label="Close full photo"><Icon name="close" size={22} /> Close</button><img src={roomImage} alt="Your original room photo, unchanged" /><p>Original photo. No AI changes. Only visible on this device.</p></div>}
+      {showPhoto && <div className="photo-viewer" data-clarity-mask="true" role="dialog" aria-modal="true" aria-label="Full room photo"><button onClick={() => setShowPhoto(false)} aria-label="Close full photo"> Close</button><img src={roomImage} alt="Your original room photo, unchanged" /><p>Original photo. No AI changes. Only visible on this device.</p></div>}
 
-      <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }), 30); }}>How it works</button><button onClick={() => setShowApi(true)}>Feature status</button></div></footer>
+      <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" }), 30); }}>How it works</button><button onClick={() => setShowApi(true)}>Feature status</button></div></footer>
 
-      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close"><Icon name="close" size={18} /></button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign-in and saved makeovers are still being set up. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email <Icon name="arrow" size={16} /></button></>}<small>In this demo, room photos stay on your device. No image-generation service receives them.</small></div></div>}
+      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close">Close</button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign-in and saved makeovers are still being set up. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email </button></>}<small>In this demo, room photos stay on your device. No image-generation service receives them.</small></div></div>}
 
-      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close"><Icon name="close" size={18} /></button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. AI image redesign, live retailer prices, checkout and public sign-in are not enabled. Room photos never leave this device.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio <Icon name="arrow" size={17} /></button></div></div>}
-      {showList && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Your decor list"><div className="api-modal"><button className="modal-close" onClick={() => setShowList(false)} aria-label="Close"><Icon name="close" size={18} /></button><h2>Your decor list</h2><p>{theme} · {roomType} · Budget ₹{formatPrice(budget)}</p>{cartProducts.length ? cartProducts.map(product => <div className="list-item" key={product.id}><div><b>{product.title}</b><p>{product.detail} · estimate ₹{formatPrice(product.price)}</p></div><button onClick={() => toggleCart(product.id)}>Remove</button></div>) : <p>Your list is empty. Add a sample piece from the studio.</p>}<p>Total estimate: ₹{formatPrice(cartTotal)} {cartTotal > budget ? "- over your budget" : "- within your budget"}</p><p>Illustrative allocations only. Check real prices, dimensions and delivery before buying. Save your brief on this device to keep this list, or download it.</p><button className="primary-button" onClick={() => { const blob = new Blob([`Roomly style plan\n${theme} | ${roomType}\nBudget: INR ${budget}\n${cartProducts.map(p => `${p.title} - INR ${p.price} (estimate)`).join("\n")}\nTotal estimate: INR ${cartTotal}\nIllustrative allocations, not live prices. Verify dimensions, delivery and prices before buying.\n\nSTYLING STEPS\n${plan.steps.map((step, i) => `${i + 1}. ${step}`).join("\n")}\n\nPALETTE\n${plan.palette.map(([name, color]) => `${name}: ${color}`).join("\n")}`], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "roomly-decor-list.txt"; a.click(); URL.revokeObjectURL(url); }}>Download list</button></div></div>}
+      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close">Close</button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. AI image redesign, live retailer prices, checkout and public sign-in are not enabled. Room photos never leave this device.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio </button></div></div>}
+      {showList && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Your decor list"><div className="api-modal"><button className="modal-close" onClick={() => setShowList(false)} aria-label="Close">Close</button><h2>Your decor list</h2><p>{theme} · {roomType} · Budget ₹{formatPrice(budget)}</p>{cartProducts.length ? cartProducts.map(product => <div className="list-item" key={product.id}><div><b>{product.title}</b><p>{product.detail} · estimate ₹{formatPrice(product.price)}</p></div><button onClick={() => toggleCart(product.id)}>Remove</button></div>) : <p>Your list is empty. Add a sample piece from the studio.</p>}<p>Total estimate: ₹{formatPrice(cartTotal)} {cartTotal > budget ? "- over your budget" : "- within your budget"}</p><p>Illustrative allocations only. Check real prices, dimensions and delivery before buying. Save your brief on this device to keep this list, or download it.</p><button className="primary-button" onClick={() => { const blob = new Blob([`Roomly style plan\n${theme} | ${roomType}\nBudget: INR ${budget}\n${cartProducts.map(p => `${p.title} - INR ${p.price} (estimate)`).join("\n")}\nTotal estimate: INR ${cartTotal}\nIllustrative allocations, not live prices. Verify dimensions, delivery and prices before buying.\n\nSTYLING STEPS\n${plan.steps.map((step, i) => `${i + 1}. ${step}`).join("\n")}\n\nPALETTE\n${plan.palette.map(([name, color]) => `${name}: ${color}`).join("\n")}`], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "roomly-decor-list.txt"; a.click(); URL.revokeObjectURL(url); }}>Download list</button></div></div>}
 
       {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}
     </main>
