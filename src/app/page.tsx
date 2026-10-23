@@ -475,7 +475,7 @@ export default function HomePage() {
                   <div className="add-actions">
                     <button className="text-button" onClick={undoAddEdit} disabled={editBusy}>Undo last</button>
                     <button className="text-button" onClick={resetAddEdits} disabled={editBusy}>Start over</button>
-                    <a className="ai-download" href={editImage ?? roomImage} download="roomly-my-room-edit.jpg">Download photo</a>
+                    <a className="ai-download" href={editImage ?? roomImage} download="roomly-my-room-edit.png">Download photo</a>
                   </div>
                 )}
                 {addedItems.length > 0 && (

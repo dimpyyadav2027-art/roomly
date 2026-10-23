@@ -122,7 +122,8 @@ export function composite(work: HTMLCanvasElement, after: HTMLCanvasElement, mas
 }
 
 export async function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+  // PNG export: lossless, so the untouched area stays byte-identical to the original photo.
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("no blob");
   return URL.createObjectURL(blob);
 }
