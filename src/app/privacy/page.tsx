@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <p>Your design brief (theme, room type, budget and shopping list) is saved in your browser's local storage so it survives a refresh. You can clear it any time from your browser settings. It never leaves your device.</p>
 
       <h2>Accounts</h2>
-      <p>If you sign in, we store your email address and sign-in method in Supabase (our authentication provider) so you can log in again. Signing in with Google shares your Google account email and basic profile with Roomly. We do not post to your Google account or access your contacts, files or emails.</p>
+      <p>If you sign in, we store your email address and sign-in method in Supabase (our authentication provider) so you can log in again, and your browser stores a Supabase session token in local storage to keep you signed in. Signing in with Google shares your Google account email and basic profile with Roomly. We do not post to your Google account or access your contacts, files or emails.</p>
 
       <h2>What we do not do</h2>
       <p>We do not run advertising trackers, sell your data, or use your photos to train AI models.</p>
