@@ -473,8 +473,8 @@ export default function HomePage() {
                 </div>
                 {editStack.length > 0 && (
                   <div className="add-actions">
-                    <button className="text-button" onClick={undoAddEdit} disabled={editBusy}>Undo last</button>
-                    <button className="text-button" onClick={resetAddEdits} disabled={editBusy}>Start over</button>
+                    <button className="add-undo-button" onClick={undoAddEdit} disabled={editBusy}>Undo last</button>
+                    <button className="add-undo-button" onClick={resetAddEdits} disabled={editBusy}>Start over</button>
                     <a className="ai-download" href={editImage ?? roomImage} download="roomly-my-room-edit.png">Download photo</a>
                   </div>
                 )}

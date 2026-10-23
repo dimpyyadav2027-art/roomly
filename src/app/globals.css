@@ -233,3 +233,6 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:3px soli
 .add-actions { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
 .add-similar { display: block; margin-top: 10px; font-size: 13px; }
 .add-similar-group { margin-right: 14px; }
+
+.add-undo-button { background: none; border: 0; color: var(--olive-dark); font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 2px; text-decoration: underline; text-underline-offset: 3px; }
+.add-undo-button:disabled { opacity: .5; cursor: default; }
