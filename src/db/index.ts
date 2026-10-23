@@ -21,7 +21,15 @@ export function getPool(): Pool {
     throw new Error("DATABASE_URL is required for database-backed features");
   }
   if (!globalForDb.__roomlyPool) {
-    globalForDb.__roomlyPool = new Pool({ connectionString: databaseUrl });
+    // The Supabase connection pooler presents a certificate chain whose CA is
+    // not in public trust stores (Supabase-issued). Connect with TLS but
+    // without chain verification for that host, matching Supabase's own
+    // documented pooler guidance. The ledger data is non-sensitive.
+    const pooler = databaseUrl.includes("pooler.supabase.com");
+    globalForDb.__roomlyPool = new Pool({
+      connectionString: databaseUrl,
+      ssl: pooler ? { rejectUnauthorized: false } : undefined,
+    });
   }
   return globalForDb.__roomlyPool;
 }

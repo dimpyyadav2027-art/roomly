@@ -135,6 +135,10 @@ export default function HomePage() {
   const [showList, setShowList] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [aiConsent, setAiConsent] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     try { setHasSaved(!!localStorage.getItem("roomly-brief-v1")); } catch { /* Storage can be disabled. */ }
@@ -172,6 +176,9 @@ export default function HomePage() {
       return URL.createObjectURL(file);
     });
     setGenerated(false);
+    setAiImage(null);
+    setAiConsent(false);
+    setAiError(null);
     notify("Room photo ready. Your layout stays private.");
   };
 
@@ -205,6 +212,45 @@ export default function HomePage() {
     setCart((current) =>
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
+  };
+
+  const runAiRestyle = async () => {
+    if (!uploadedImage || !aiConsent || aiBusy) return;
+    setAiBusy(true);
+    setAiError(null);
+    try {
+      // Downscale client-side to max 1024px before upload: smaller upload,
+      // lower AI cost, and the visitor's full-resolution original never leaves the device.
+      const img = new Image();
+      img.src = uploadedImage;
+      await img.decode();
+      const scale = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no canvas");
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const response = await fetch("/api/ai-makeover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl, theme, roomType, consent: true, width: w, height: h }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { image?: string; error?: string };
+      if (!response.ok || typeof data.image !== "string") {
+        setAiError(typeof data.error === "string" ? data.error : "The AI restyle did not work this time. Please try again later.");
+      } else {
+        setAiImage(data.image);
+        notify("AI restyle ready. Details may differ from your room.");
+      }
+    } catch {
+      setAiError("The AI restyle did not work this time. Please try again in a moment.");
+    } finally {
+      setAiBusy(false);
+    }
   };
 
   const goToStudio = () => {
@@ -244,7 +290,7 @@ export default function HomePage() {
                 <h1><span>Come home</span><span>to a room</span><span>you love.</span></h1>
                 <p className="hero-text">A brighter corner. A softer landing. Start with your room, choose what feels right and make a plan within your budget.</p>
                 <div className="hero-actions"><button className="primary-button" onClick={goToStudio}>Start your makeover</button></div>
-                <p className="generation-note hero-demo-note">Free room planner. No account needed.<br />AI image redesign is not enabled.</p>
+                <p className="generation-note hero-demo-note">Free room planner. No account needed.<br />Optional AI restyle (beta) in the studio - free, shared daily limit.</p>
               </div>
               <div className="hero-visual" aria-label="Sample room, stock photo">
                 <div className="hero-frame"><div className="hero-room-image" style={{ backgroundImage: `url(${baseRoom})` }} /><div className="hero-wash" /><div className="homely-caption"><b>A little more<br />at home.</b><small>Stock photo - not an AI result</small></div></div>
@@ -256,7 +302,7 @@ export default function HomePage() {
             <div className="section-kicker">A PLAN FOR YOUR REAL LIFE</div>
             <div className="steps-heading"><h2>A room you like.<br />A budget you choose.<br />A little more you.</h2></div>
             <div className="steps-grid">
-              <article className="step-card"><span className="step-number">01</span><h3>Your room</h3><p>Bring your original room photo. It stays unchanged and on your device.</p></article>
+              <article className="step-card"><span className="step-number">01</span><h3>Your room</h3><p>Bring your original room photo. It stays on your device unless you choose the optional AI restyle.</p></article>
               <article className="step-card"><span className="step-number">02</span><h3>Your direction</h3><p>Choose a style, room type and comfortable decor budget.</p></article>
               <article className="step-card"><span className="step-number">03</span><h3>Your edit and shop</h3><p>Explore curated ideas, edit your list and shop similar pieces on Flipkart and Zepto.</p></article>
             </div><button className="primary-button" onClick={goToStudio}>Explore the studio</button>
@@ -265,7 +311,7 @@ export default function HomePage() {
       )}
 
       <section className={`studio-section ${view === "studio" ? "studio-active" : ""}`} id="studio">
-        <div className="studio-heading"><div><span className="section-kicker">YOUR MAKEOVER STUDIO</span><h2>Design the room <em>you’ve got.</em></h2></div><div className="secure-note"><Icon name="lock" size={15} /> Your photo stays on this device - it is never uploaded or saved</div></div>
+        <div className="studio-heading"><div><span className="section-kicker">YOUR MAKEOVER STUDIO</span><h2>Design the room <em>you’ve got.</em></h2></div><div className="secure-note"><Icon name="lock" size={15} /> Your photo stays on this device - it is uploaded only if you choose the AI restyle, and is never saved</div></div>
 
         <div className="studio-layout">
           <section className="canvas-panel">
@@ -284,6 +330,37 @@ export default function HomePage() {
             <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
             {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" })}>Shop my decor edit</button>}
             <p className="generation-note">A real planning tool, not an AI render. Your original photo stays unchanged; the style plan is based on curated ideas and illustrative prices.</p>
+            {uploadedImage && (
+              <div className="ai-block" data-clarity-mask="true">
+                <span className="section-kicker">AI RESTYLE · BETA</span>
+                <p className="ai-block-copy">AI re-imagines your room in your chosen style. The layout is roughly kept, but furniture details and parts of the layout can change.</p>
+                <label className="ai-consent">
+                  <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} />
+                  <span>I agree to send this room photo to Cloudflare for AI processing. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept.</span>
+                </label>
+                <button className="makeover-button ai-button" onClick={runAiRestyle} disabled={!aiConsent || aiBusy}>
+                  {aiBusy ? <><span className="spinner" /> Restyling your room...</> : "Create AI restyle"}
+                  {!aiBusy && <span className="button-price">Free</span>}
+                </button>
+                <p className="generation-note">Free - shared daily limit. If today's restyles are used up, try again tomorrow. Your original photo stays on this device.</p>
+                {aiError && <p className="ai-error">{aiError}</p>}
+                {aiImage && (
+                  <div className="ai-result">
+                    <div className="ai-result-grid">
+                      <figure>
+                        <div className="ai-result-img" style={{ backgroundImage: `url(${roomImage})` }} />
+                        <figcaption>YOUR ORIGINAL PHOTO · UNCHANGED</figcaption>
+                      </figure>
+                      <figure>
+                        <div className="ai-result-img" style={{ backgroundImage: `url(${aiImage})` }} />
+                        <figcaption>AI RESTYLE · DETAILS MAY DIFFER FROM YOUR ROOM</figcaption>
+                      </figure>
+                    </div>
+                    <a className="ai-download" href={aiImage} download="roomly-ai-restyle.jpg">Download AI restyle</a>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           <aside className="brief-panel">
@@ -322,9 +399,9 @@ export default function HomePage() {
 
       <footer><button className="brand" onClick={() => setView("landing")}><span className="brand-mark"><span /></span><span>roomly</span></button><span>Imagined for real life, not just the feed.</span><div><button onClick={() => { setView("landing"); window.setTimeout(() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" }), 30); }}>How it works</button><button onClick={() => setShowApi(true)}>Feature status</button></div></footer>
 
-      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close">Close</button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign-in and saved makeovers are still being set up. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email </button></>}<small>In this demo, room photos stay on your device. No image-generation service receives them.</small></div></div>}
+      {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close">Close</button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Save rooms you love.</h2><p>Sign-in and saved makeovers are still being set up. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet - your photo and results stay on this device either way.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><input className="email-input" type="email" placeholder="you@example.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} aria-label="Email address" /><button className="email-login" onClick={sendMagicLink}>Continue with email </button></>}<small>Room photos stay on your device unless you choose the AI restyle, which sends one photo to Cloudflare for processing after your OK.</small></div></div>}
 
-      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close">Close</button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. Store buttons link out to search results for similar items on Flipkart and Zepto; Amazon and Meesho are not connected yet. AI image redesign, live in-app retailer prices, checkout and public sign-in are not enabled. Room photos never leave this device.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio </button></div></div>}
+      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close">Close</button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. Store buttons link out to search results for similar items on Flipkart and Zepto; Amazon and Meesho are not connected yet. Live in-app retailer prices, checkout and public sign-in are not enabled. The optional AI restyle (beta) re-imagines your room - the layout is roughly kept but furniture details and parts of the layout can change - and sends your photo to Cloudflare for processing only after you agree. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept. Free, with a shared daily limit.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio </button></div></div>}
       {showList && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Your decor list"><div className="api-modal"><button className="modal-close" onClick={() => setShowList(false)} aria-label="Close">Close</button><h2>Your decor list</h2><p>{theme} · {roomType} · Budget ₹{formatPrice(budget)}</p>{cartProducts.length ? cartProducts.map(product => <div className="list-item" key={product.id}><div><b>{product.title}</b><p>{product.detail} · estimate ₹{formatPrice(product.price)}</p><span className="shop-links list-shop"><span className="shop-links-label">Shop similar</span><a href={`https://www.flipkart.com/search?q=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Flipkart</a><a href={`https://www.zepto.com/search?query=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Zepto</a></span></div><button onClick={() => toggleCart(product.id)}>Remove</button></div>) : <p>Your list is empty. Add a sample piece from the studio.</p>}<p>Total estimate: ₹{formatPrice(cartTotal)} {cartTotal > budget ? "- over your budget" : "- within your budget"}</p><p>Illustrative allocations only. Check real prices, dimensions and delivery before buying. Save your brief on this device to keep this list, or download it.</p><button className="primary-button" onClick={() => { const blob = new Blob([`Roomly style plan\n${theme} | ${roomType}\nBudget: INR ${budget}\n${cartProducts.map(p => `${p.title} - INR ${p.price} (estimate)`).join("\n")}\nTotal estimate: INR ${cartTotal}\nIllustrative allocations, not live prices. Verify dimensions, delivery and prices before buying.\n\nSTYLING STEPS\n${plan.steps.map((step, i) => `${i + 1}. ${step}`).join("\n")}\n\nPALETTE\n${plan.palette.map(([name, color]) => `${name}: ${color}`).join("\n")}`], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "roomly-decor-list.txt"; a.click(); URL.revokeObjectURL(url); }}>Download list</button></div></div>}
 
       {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}
