@@ -481,7 +481,7 @@ export default function HomePage() {
                 {addedItems.length > 0 && (
                   <p className="shop-links add-similar"><span className="shop-links-label">Shop similar (search results, not exact matches):</span>
                     {[...new Set(addedItems)].map((key) => (
-                      <span key={key} className="add-similar-group">{ADD_ITEMS[key].label}: <a href={`https://www.flipkart.com/search?q=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Flipkart</a> <a href={`https://www.amazon.in/s?k=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Amazon.in</a></span>
+                      <span key={key} className="add-similar-group">{ADD_ITEMS[key].label}: <a href={`https://www.flipkart.com/search?q=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Flipkart</a> <a href={`https://www.zepto.com/search?query=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Zepto</a></span>
                     ))}
                   </p>
                 )}
