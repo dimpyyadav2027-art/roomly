@@ -172,9 +172,9 @@ export default function HomePage() {
     window.setTimeout(() => setToast(null), 2800);
   };
 
-  const handleUpload = (event: ChangeEvent<HTMLInputElement>) => handleFile(event.target.files?.[0]);
+  const handleUpload = (event: ChangeEvent<HTMLInputElement>) => { void handleFile(event.target.files?.[0]); };
 
-  const handleFile = (file?: File) => {
+  const handleFile = async (file?: File) => {
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       notify("Please choose a JPG, PNG, or WEBP image.");
@@ -186,9 +186,19 @@ export default function HomePage() {
     }
     // Use an object URL, never a data URL: object URLs carry no image bytes,
     // so analytics style/attribute capture can never exfiltrate the photo.
+    // Read the bytes first so the blob behind the URL is fully materialised
+    // before any <img> starts loading it.
+    let blobUrl: string;
+    try {
+      const bytes = await file.arrayBuffer();
+      blobUrl = URL.createObjectURL(new Blob([bytes], { type: file.type }));
+    } catch {
+      notify("That photo could not be read. Please try a different one.");
+      return;
+    }
     setUploadedImage((previous) => {
       if (previous && previous.startsWith("blob:")) URL.revokeObjectURL(previous);
-      return URL.createObjectURL(file);
+      return blobUrl;
     });
     setGenerated(false);
     setAiImage(null);
