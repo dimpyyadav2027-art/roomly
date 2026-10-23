@@ -14,7 +14,7 @@ export default function PrivacyPage() {
 
       <h2>Your room photos</h2>
       <p>Photos you upload are used in your own browser. Roomly does not upload or store your photo on our servers, and it is not saved in your browser's storage. Closing the tab removes it.</p>
-      <p>If you choose the AI restyle, that one photo is sent to Cloudflare's AI service (Workers AI) to generate the concept image, only after you agree. The request includes no other personal data. Cloudflare's terms for this service are at https://developers.cloudflare.com/workers-ai/platform/data-usage/.</p>
+      <p>If you choose the AI restyle, that one photo is sent to Cloudflare's AI service (Workers AI) to generate the concept image, only after you agree. If you use tap-to-add, only the part of the photo around the spot you tap is sent, again only after you agree. These requests include no other personal data. Cloudflare's terms for this service are at https://developers.cloudflare.com/workers-ai/platform/data-usage/.</p>
 
       <h2>What we store in your browser</h2>
       <p>Your design brief (theme, room type, budget and shopping list) is saved in your browser's local storage so it survives a refresh. You can clear it any time from your browser settings. It never leaves your device.</p>
