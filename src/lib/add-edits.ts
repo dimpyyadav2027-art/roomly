@@ -62,13 +62,26 @@ export function buildMask(item: AddItemKey): HTMLCanvasElement {
   canvas.height = CROP;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no canvas");
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, CROP, CROP);
+  // Alpha mask for compositing: transparent outside the feathered ellipse.
+  // (The model API needs black-outside; maskForApi derives that from this.)
   ctx.filter = "blur(8px)";
   ctx.fillStyle = "#fff";
   ctx.beginPath();
   ctx.ellipse(CROP / 2, CROP / 2, mask.rx, mask.ry, 0, 0, Math.PI * 2);
   ctx.fill();
+  return canvas;
+}
+
+// Inpainting APIs expect an opaque mask: black = keep, white = edit.
+export function maskForApi(mask: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = CROP;
+  canvas.height = CROP;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no canvas");
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, CROP, CROP);
+  ctx.drawImage(mask, 0, 0);
   return canvas;
 }
 

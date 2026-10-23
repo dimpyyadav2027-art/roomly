@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { stylePlans } from "@/lib/style-plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { ADD_ITEMS, type AddItemKey, buildMask, changedFraction, composite, cropBox, canvasToObjectURL, dataUrlToCanvas, makeWorkCanvas, CROP } from "@/lib/add-edits";
+import { ADD_ITEMS, type AddItemKey, buildMask, changedFraction, composite, cropBox, canvasToObjectURL, dataUrlToCanvas, makeWorkCanvas, CROP , maskForApi } from "@/lib/add-edits";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 
 type IconName =
@@ -265,7 +265,7 @@ export default function HomePage() {
         const response = await fetch("/api/add-edit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ crop: before.toDataURL("image/png"), mask: mask.toDataURL("image/png"), item, seed: Math.floor(Math.random() * 1e9), consent: true }),
+          body: JSON.stringify({ crop: before.toDataURL("image/png"), mask: maskForApi(mask).toDataURL("image/png"), item, seed: Math.floor(Math.random() * 1e9), consent: true }),
         });
         const data = (await response.json().catch(() => ({}))) as { image?: string; error?: string };
         if (!response.ok || typeof data.image !== "string") {
