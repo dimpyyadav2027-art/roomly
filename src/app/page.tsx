@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { stylePlans } from "@/lib/style-plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { ADD_ITEMS, type AddItemKey, buildMask, changedFraction, composite, cropBox, canvasToObjectURL, dataUrlToCanvas, makeWorkCanvas, CROP } from "@/lib/add-edits";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 
 type IconName =
@@ -145,6 +146,14 @@ export default function HomePage() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const workCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [editImage, setEditImage] = useState<string | null>(null);
+  const [editStack, setEditStack] = useState<string[]>([]);
+  const [addedItems, setAddedItems] = useState<AddItemKey[]>([]);
+  const [placingItem, setPlacingItem] = useState<AddItemKey | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editConsent, setEditConsent] = useState(false);
 
   useEffect(() => {
     try { setHasSaved(!!localStorage.getItem("roomly-brief-v1")); } catch { /* Storage can be disabled. */ }
@@ -185,6 +194,12 @@ export default function HomePage() {
     setAiImage(null);
     setAiConsent(false);
     setAiError(null);
+    workCanvasRef.current = null;
+    setEditImage(null);
+    setEditStack([]);
+    setAddedItems([]);
+    setPlacingItem(null);
+    setEditError(null);
     notify("Room photo ready. Your layout stays private.");
   };
 
@@ -218,6 +233,80 @@ export default function HomePage() {
     setCart((current) =>
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
+  };
+
+  const placeAddEdit = async (item: AddItemKey, tapX: number, tapY: number) => {
+    if (!uploadedImage || editBusy || !editConsent) return;
+    setEditBusy(true);
+    setEditError(null);
+    try {
+      if (!workCanvasRef.current) {
+        workCanvasRef.current = await makeWorkCanvas(editImage ?? uploadedImage);
+      }
+      const work = workCanvasRef.current;
+      const { bx, by } = cropBox(item, tapX, tapY, work.width, work.height);
+      const mask = buildMask(item);
+      const before = document.createElement("canvas");
+      before.width = CROP; before.height = CROP;
+      before.getContext("2d")?.drawImage(work, bx, by, CROP, CROP, 0, 0, CROP, CROP);
+      let after: HTMLCanvasElement | null = null;
+      let lastError = "";
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const response = await fetch("/api/add-edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ crop: before.toDataURL("image/png"), mask: mask.toDataURL("image/png"), item, seed: Math.floor(Math.random() * 1e9), consent: true }),
+        });
+        const data = (await response.json().catch(() => ({}))) as { image?: string; error?: string };
+        if (!response.ok || typeof data.image !== "string") {
+          lastError = typeof data.error === "string" ? data.error : "The edit did not work this time.";
+          if (response.status === 429) break;
+          continue;
+        }
+        const candidate = await dataUrlToCanvas(data.image);
+        if (changedFraction(before, candidate, mask) >= 0.2) {
+          after = candidate;
+          break;
+        }
+        lastError = "Nothing appeared at that spot - trying a different roll.";
+      }
+      if (!after) {
+        setEditError(lastError || "Nothing appeared at that spot. Try a slightly different place or item.");
+        return;
+      }
+      const previousUrl = editImage ?? uploadedImage;
+      composite(work, after, mask, bx, by);
+      const nextUrl = await canvasToObjectURL(work);
+      setEditStack((stack) => [...stack, previousUrl]);
+      setEditImage(nextUrl);
+      setAddedItems((items) => [...items, item]);
+      setPlacingItem(null);
+      notify(`${ADD_ITEMS[item].label} added. Only that spot changed - the rest is still your photo.`);
+    } catch {
+      setEditError("The edit did not work this time. Please try again in a moment.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const undoAddEdit = () => {
+    setEditStack((stack) => {
+      const previous = stack[stack.length - 1];
+      if (!previous) return stack;
+      workCanvasRef.current = null;
+      setEditImage(previous);
+      setAddedItems((items) => items.slice(0, -1));
+      return stack.slice(0, -1);
+    });
+  };
+
+  const resetAddEdits = () => {
+    workCanvasRef.current = null;
+    setEditImage(null);
+    setEditStack([]);
+    setAddedItems([]);
+    setPlacingItem(null);
+    setEditError(null);
   };
 
   const runAiRestyle = async () => {
@@ -282,7 +371,11 @@ export default function HomePage() {
         </nav>
         <div className="nav-actions"><button className="motion-switch" aria-pressed={!motion} onClick={() => setMotion(!motion)}>{motion ? "Reduce motion" : "Motion off"}</button>
           <button className="text-button" onClick={goToShop}>Shop</button>
-          <button className="text-button" onClick={() => setShowSignIn(true)}>{sessionEmail ? sessionEmail : "Sign in"}</button>
+          {sessionEmail ? (
+            <button className="text-button" title="Tap to sign out" onClick={async () => { const sb = getSupabaseBrowser(); await sb?.auth.signOut(); setSessionEmail(null); notify("Signed out."); }}>{sessionEmail} · sign out</button>
+          ) : (
+            <button className="text-button" onClick={() => setShowSignIn(true)}>Sign in</button>
+          )}
           <button className="mini-primary" onClick={goToStudio}>Try it free </button>
         </div>
       </header>
@@ -336,6 +429,55 @@ export default function HomePage() {
             <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
             {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" })}>Shop my decor edit</button>}
             <p className="generation-note">A real planning tool, not an AI render. Your original photo stays unchanged; the style plan is based on curated ideas and illustrative prices.</p>
+            {uploadedImage && (
+              <div className="ai-block add-block" data-clarity-mask="true">
+                <span className="section-kicker">ADD A FEW THINGS · BETA</span>
+                <p className="ai-block-copy">Place a plant, wall art, a vase or a cushion into <b>your actual photo</b>. Only the spot you tap changes - the rest of the room stays exactly as it is.</p>
+                <label className="ai-consent">
+                  <input type="checkbox" checked={editConsent} onChange={(event) => setEditConsent(event.target.checked)} />
+                  <span>I agree to send the part of the photo I tap to Cloudflare for AI editing. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept.</span>
+                </label>
+                <div className="add-item-row">
+                  {(Object.keys(ADD_ITEMS) as AddItemKey[]).map((key) => (
+                    <button key={key} className={`theme-choice ${placingItem === key ? "selected" : ""}`} disabled={!editConsent || editBusy} onClick={() => setPlacingItem(placingItem === key ? null : key)}>{ADD_ITEMS[key].label}</button>
+                  ))}
+                </div>
+                {placingItem && !editBusy && <p className="add-place-hint">Now {ADD_ITEMS[placingItem].hint} on the photo below.</p>}
+                {editBusy && <p className="add-place-hint"><span className="spinner" /> Adding to your photo - can take up to half a minute...</p>}
+                {editError && <p className="ai-error">{editError}</p>}
+                <div className="add-edit-photo-wrap">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className={`add-edit-photo ${placingItem && !editBusy ? "placing" : ""}`}
+                    src={editImage ?? roomImage}
+                    alt="Your room photo with any additions you placed"
+                    onPointerDown={(event) => {
+                      if (!placingItem || editBusy) return;
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const work = workCanvasRef.current;
+                      const scaleX = (work?.width ?? event.currentTarget.naturalWidth) / rect.width;
+                      const scaleY = (work?.height ?? event.currentTarget.naturalHeight) / rect.height;
+                      placeAddEdit(placingItem, (event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
+                    }}
+                  />
+                </div>
+                {editStack.length > 0 && (
+                  <div className="add-actions">
+                    <button className="text-button" onClick={undoAddEdit} disabled={editBusy}>Undo last</button>
+                    <button className="text-button" onClick={resetAddEdits} disabled={editBusy}>Start over</button>
+                    <a className="ai-download" href={editImage ?? roomImage} download="roomly-my-room-edit.jpg">Download photo</a>
+                  </div>
+                )}
+                {addedItems.length > 0 && (
+                  <p className="shop-links add-similar"><span className="shop-links-label">Shop similar (search results, not exact matches):</span>
+                    {[...new Set(addedItems)].map((key) => (
+                      <span key={key} className="add-similar-group">{ADD_ITEMS[key].label}: <a href={`https://www.flipkart.com/search?q=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Flipkart</a> <a href={`https://www.amazon.in/s?k=${encodeURIComponent(ADD_ITEMS[key].search)}`} target="_blank" rel="noopener noreferrer">Amazon.in</a></span>
+                    ))}
+                  </p>
+                )}
+                <p className="generation-note">Free - shared daily limit. AI adds can look artificial and sometimes miss the spot or the colour; undo and try again cost nothing extra. Roomly does not store your photo or the result.</p>
+              </div>
+            )}
             {uploadedImage && (
               <div className="ai-block" data-clarity-mask="true">
                 <span className="section-kicker">AI RESTYLE · BETA</span>

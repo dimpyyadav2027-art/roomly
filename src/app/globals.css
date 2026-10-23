@@ -222,3 +222,14 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:3px soli
   .ai-result-grid { grid-template-columns: 1fr; }
   .ai-result-img { height: 200px; }
 }
+
+/* Tap-to-add edits */
+.add-block { border-color: #7d8b58; }
+.add-item-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.add-place-hint { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; }
+.add-edit-photo-wrap { margin-top: 10px; }
+.add-edit-photo { display: block; max-width: 100%; height: auto; border-radius: 12px; touch-action: none; }
+.add-edit-photo.placing { cursor: crosshair; outline: 2px dashed #7d8b58; outline-offset: 2px; }
+.add-actions { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.add-similar { display: block; margin-top: 10px; font-size: 13px; }
+.add-similar-group { margin-right: 14px; }
