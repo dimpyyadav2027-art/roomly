@@ -212,6 +212,11 @@ export default function HomePage() {
     window.setTimeout(() => document.getElementById("studio")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto", block: "start" }), 20);
   };
 
+  const goToShop = () => {
+    setView("studio");
+    window.setTimeout(() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto", block: "start" }), 30);
+  };
+
   return (
     <main ref={pageRef} className={motion ? "motion-on" : "motion-off"}>
       <header className="topbar">
@@ -224,6 +229,7 @@ export default function HomePage() {
           <button onClick={() => setShowApi(true)}>Feature status</button>
         </nav>
         <div className="nav-actions"><button className="motion-switch" aria-pressed={!motion} onClick={() => setMotion(!motion)}>{motion ? "Reduce motion" : "Motion off"}</button>
+          <button className="text-button" onClick={goToShop}>Shop</button>
           <button className="text-button" onClick={() => setShowSignIn(true)}>{sessionEmail ? sessionEmail : "Sign in"}</button>
           <button className="mini-primary" onClick={goToStudio}>Try it free </button>
         </div>
@@ -252,7 +258,7 @@ export default function HomePage() {
             <div className="steps-grid">
               <article className="step-card"><span className="step-number">01</span><h3>Your room</h3><p>Bring your original room photo. It stays unchanged and on your device.</p></article>
               <article className="step-card"><span className="step-number">02</span><h3>Your direction</h3><p>Choose a style, room type and comfortable decor budget.</p></article>
-              <article className="step-card"><span className="step-number">03</span><h3>Your edit</h3><p>Explore curated ideas, edit your list and download your plan.</p></article>
+              <article className="step-card"><span className="step-number">03</span><h3>Your edit and shop</h3><p>Explore curated ideas, edit your list and shop similar pieces on Flipkart and Zepto.</p></article>
             </div><button className="primary-button" onClick={goToStudio}>Explore the studio</button>
           </section>
         </>
@@ -276,7 +282,7 @@ export default function HomePage() {
               </div>
             )}
             <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
-            {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" })}>View my decor edit</button>}
+            {generated && <button className="plan-jump" onClick={() => document.getElementById("decor-edit")?.scrollIntoView({ behavior: motion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" })}>Shop my decor edit</button>}
             <p className="generation-note">A real planning tool, not an AI render. Your original photo stays unchanged; the style plan is based on curated ideas and illustrative prices.</p>
           </section>
 
@@ -298,14 +304,15 @@ export default function HomePage() {
           </aside>
 
           <aside id="decor-edit" className={`shop-panel ${generated ? "shop-ready" : ""}`}>
-            <div className="panel-heading"><span className="eyebrow-number">03</span><h3>Your decor edit</h3></div>
+            <span className="section-kicker">SHOP SECTION</span>
+            <div className="panel-heading"><span className="eyebrow-number">03</span><h3>Shop your decor edit</h3></div>
             {generated ? <>
               <p className="shop-intro">Curated {theme.toLowerCase()} ideas. Illustrative budget allocations, not live prices or objects detected in your photo.</p>
               <div className="budget-card"><span>{cartTotal > budget ? "Over your budget" : "Your budget, in view"}</span><strong>₹{formatPrice(cartTotal)} <small>/ ₹{formatPrice(budget)}</small></strong><div className="budget-track"><i style={{ width: `${Math.min(100, cartTotal / budget * 100)}%`, background: cartTotal > budget ? "#b9502e" : "#7d8b58" }} /></div><p>{cartTotal > budget ? `Remove ₹${formatPrice(cartTotal - budget)} to fit your budget.` : `₹${formatPrice(budget - cartTotal)} left for delivery or other changes.`}</p><button onClick={() => { fitBudget(); notify("List adjusted to fit your budget."); }}>Fit list to my budget</button></div>
               <div className="decor-cards">{products.map(product => <div key={product.id} className={`decor-card ${cart.includes(product.id) ? "in-list" : ""}`}><button className="decor-pick" onClick={() => toggleCart(product.id)} aria-pressed={cart.includes(product.id)} aria-label={`${cart.includes(product.id) ? "Remove" : "Add"} ${product.title}`}><span className="decor-symbol"></span><span><small>{product.category}</small><b>{product.title}</b><em>{product.detail}</em><strong>₹{formatPrice(product.price)} <small>allocation</small></strong></span><span className="decor-toggle">{cart.includes(product.id) ? "Added" : "Add"}</span></button><div className="shop-links"><span className="shop-links-label">Shop similar</span><a href={`https://www.flipkart.com/search?q=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Flipkart</a><a href={`https://www.zepto.com/search?query=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Zepto</a><span className="shop-link-pending" title="Not available yet">Amazon · soon</span><span className="shop-link-pending" title="Not available yet">Meesho · soon</span></div></div>)}</div>
               <p className="shop-links-note">Store buttons open that store's own search results for similar pieces - prices, stock and delivery are the store's. These are similar items, not exact matches to your plan. Amazon and Meesho links are not available yet.</p>
               <div className="cart-summary"><div><span>Your edit list</span><b>{cart.length} pieces · ₹{formatPrice(cartTotal)}</b></div><button onClick={() => setShowList(true)}>View list </button></div>
-            </> : <div className="shop-empty"><div><Icon name="bag" size={24} /></div><b>Your shopping edit lives here</b><p>Choose a style and budget, then build a plan. Get a color palette, styling steps and an editable list that starts within budget.</p><span><Icon name="info" size={14} /> Sample prices - confirm before buying</span></div>}
+            </> : <div className="shop-empty"><div><Icon name="bag" size={24} /></div><b>This is the shop section</b><p>Add your photo, choose a style and budget, then build your plan. Every decor suggestion here gets Flipkart and Zepto buttons so you can browse similar pieces and buy them on those stores. Amazon and Meesho are not connected yet.</p><span><Icon name="info" size={14} /> Sample prices - confirm before buying</span></div>}
           </aside>
         </div>
       </section>
