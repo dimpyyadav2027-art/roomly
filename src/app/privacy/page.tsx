@@ -21,9 +21,10 @@ export default function PrivacyPage() {
 
       <h2>Accounts</h2>
       <p>If you sign in, we store your email address and sign-in method in Supabase (our authentication provider) so you can log in again, and your browser stores a Supabase session token in local storage to keep you signed in. Signing in with Google shares your Google account email and basic profile with Roomly. We do not post to your Google account or access your contacts, files or emails.</p>
+      <p>Roomly loads Google AdSense code so that Google can review the site for advertising. Google may use cookies or similar technologies for ads. Your room photos are not sent to Google. See Google&apos;s policy at https://policies.google.com/technologies/ads for how Google uses data from sites that use its advertising services.</p>
 
       <h2>What we do not do</h2>
-      <p>We do not run advertising trackers, sell your data, or use your photos to train AI models.</p>
+      <p>We do not sell your data, or use your photos to train AI models.</p>
 
       <h2>Contact</h2>
       <p>Questions: dimpy.yadav2027@mastersunion.org</p>

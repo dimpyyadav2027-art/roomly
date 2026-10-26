@@ -11,6 +11,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2769947773731162"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>{children}<ClarityConsent /></body>
     </html>
   );
