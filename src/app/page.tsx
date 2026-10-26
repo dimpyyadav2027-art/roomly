@@ -143,6 +143,7 @@ export default function HomePage() {
   const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [aiConsent, setAiConsent] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -157,6 +158,18 @@ export default function HomePage() {
 
   useEffect(() => {
     try { setHasSaved(!!localStorage.getItem("roomly-brief-v1")); } catch { /* Storage can be disabled. */ }
+  }, []);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai-makeover")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { enabled?: boolean } | null) => {
+        if (active) setAiAvailable(data?.enabled === true);
+      })
+      .catch(() => {
+        if (active) setAiAvailable(false);
+      });
+    return () => { active = false; };
   }, []);
   useEffect(() => {
     const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setShowPhoto(false); setShowList(false); setShowApi(false); setShowSignIn(false); } };
@@ -496,11 +509,11 @@ export default function HomePage() {
                   <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} />
                   <span>I agree to send this room photo to Cloudflare for AI processing. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept.</span>
                 </label>
-                <button className="makeover-button ai-button" onClick={runAiRestyle} disabled={!aiConsent || aiBusy}>
-                  {aiBusy ? <><span className="spinner" /> Restyling your room...</> : "Create AI restyle"}
-                  {!aiBusy && <span className="button-price">Free</span>}
+                <button className="makeover-button ai-button" onClick={runAiRestyle} disabled={!aiAvailable || !aiConsent || aiBusy}>
+                  {aiBusy ? <><span className="spinner" /> Restyling your room...</> : aiAvailable ? "Create AI restyle" : "AI restyle setup required"}
+                  {!aiBusy && <span className="button-price">{aiAvailable ? "Beta" : "Offline"}</span>}
                 </button>
-                <p className="generation-note">Free - shared daily limit. If today's restyles are used up, try again tomorrow. Roomly does not store your photo or the result.</p>
+                <p className="generation-note">{aiAvailable ? "Shared daily usage limit applies. Provider pricing depends on your Cloudflare account plan. Roomly does not store your photo or the result." : "AI restyle is not configured yet. The owner must add Cloudflare server credentials and run the one-time daily-budget SQL setup. Your photo stays on this device."}</p>
                 {aiError && <p className="ai-error">{aiError}</p>}
                 {aiImage && (
                   <div className="ai-result">
@@ -559,7 +572,7 @@ export default function HomePage() {
 
       {showSignIn && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"><div className="signin-modal"><button className="modal-close" onClick={() => setShowSignIn(false)} aria-label="Close">Close</button><div className="modal-mark"><Icon name="sparkle" size={22} /></div><h2>Sign in with Google.</h2><p>Sign-in with Google is new. Saved makeovers are not enabled yet - your rooms still stay on this device. The public workspace works without an account.</p>{!getSupabaseBrowser() ? <p>Sign-in is not enabled in this public demo yet. Your photo and results stay on this device unless you choose the AI restyle above.</p> : signInSent ? <p>Check your email - we sent a secure sign-in link to <b>{signInEmail}</b>. Open it on this device to finish signing in.</p> : <><button className="email-login" onClick={signInWithGoogle}>Continue with Google</button></>}<small>Room photos stay on your device unless you choose AI restyle or tap-to-add, which sends the photo - or just the part you tap - to Cloudflare for processing after your OK.</small></div></div>}
 
-      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close">Close</button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. Store buttons link out to search results for similar items on Flipkart and Zepto; Amazon and Meesho are not connected yet. Live in-app retailer prices, checkout and public sign-in are not enabled. The optional AI restyle (beta) re-imagines your room - a concept, not an exact preview: walls, windows, furniture and the layout can change - and sends your photo to Cloudflare for processing only after you agree. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept. Free, with a shared daily limit.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio </button></div></div>}
+      {showApi && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Roomly feature status"><div className="api-modal"><button className="modal-close" onClick={() => setShowApi(false)} aria-label="Close">Close</button><span className="section-kicker">CURRENT FEATURE STATUS</span><h2>Plan your room. Keep your real photo.</h2><p>Build a style-specific plan with a palette, styling steps and a budget-fitting decor list. Expand your original photo, save your brief locally, or download the list. Store buttons link out to search results for similar items on Flipkart and Zepto; Amazon and Meesho are not connected yet. Live in-app retailer prices, checkout and public sign-in are not enabled. The optional AI restyle (beta) re-imagines your room - a concept, not an exact preview: walls, windows, furniture and the layout can change - and sends your photo to Cloudflare for processing only after you agree. Cloudflare's policy: photos are not used to train AI and are not kept beyond processing needs, except where legally required; technical logs are kept. It is available only after the owner configures Cloudflare credentials and the shared daily-budget table. Usage limits or charges depend on the Cloudflare account plan.</p><button className="primary-button" onClick={() => { setShowApi(false); goToStudio(); }}>Open the studio </button></div></div>}
       {showList && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Your decor list"><div className="api-modal"><button className="modal-close" onClick={() => setShowList(false)} aria-label="Close">Close</button><h2>Your decor list</h2><p>{theme} · {roomType} · Budget ₹{formatPrice(budget)}</p>{cartProducts.length ? cartProducts.map(product => <div className="list-item" key={product.id}><div><b>{product.title}</b><p>{product.detail} · estimate ₹{formatPrice(product.price)}</p><span className="shop-links list-shop"><span className="shop-links-label">Shop similar</span><a href={`https://www.flipkart.com/search?q=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Flipkart</a><a href={`https://www.zepto.com/search?query=${encodeURIComponent(product.title)}`} target="_blank" rel="noopener noreferrer">Zepto</a></span></div><button onClick={() => toggleCart(product.id)}>Remove</button></div>) : <p>Your list is empty. Add a sample piece from the studio.</p>}<p>Total estimate: ₹{formatPrice(cartTotal)} {cartTotal > budget ? "- over your budget" : "- within your budget"}</p><p>Illustrative allocations only. Check real prices, dimensions and delivery before buying. Save your brief on this device to keep this list, or download it.</p><button className="primary-button" onClick={() => { const blob = new Blob([`Roomly style plan\n${theme} | ${roomType}\nBudget: INR ${budget}\n${cartProducts.map(p => `${p.title} - INR ${p.price} (estimate)`).join("\n")}\nTotal estimate: INR ${cartTotal}\nIllustrative allocations, not live prices. Verify dimensions, delivery and prices before buying.\n\nSTYLING STEPS\n${plan.steps.map((step, i) => `${i + 1}. ${step}`).join("\n")}\n\nPALETTE\n${plan.palette.map(([name, color]) => `${name}: ${color}`).join("\n")}`], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "roomly-decor-list.txt"; a.click(); URL.revokeObjectURL(url); }}>Download list</button></div></div>}
 
       {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}

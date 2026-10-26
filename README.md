@@ -8,7 +8,7 @@ structure-aware redesign with shoppable pieces.
 - **Frontend + API:** Next.js (App Router), React, Tailwind CSS
 - **Database:** Supabase Postgres via Drizzle ORM (`makeovers`, `users` tables)
 - **File storage:** Supabase Storage (private `room-photos` bucket, signed URLs)
-- **AI generation:** Replicate image-to-image / ControlNet (optional; demo mode without it)
+- **AI generation:** Cloudflare Workers AI FLUX.2 klein 4b for the optional image-restyle beta (server-side credentials required)
 
 ## Local development
 
@@ -18,7 +18,7 @@ cp .env.example .env.local   # fill in values
 npm run dev
 ```
 
-Without env vars the app runs in demo mode (no database, demo result image).
+Without provider credentials, the AI restyle is clearly marked unavailable and the local style planner still works. Room photos stay in the browser unless the user explicitly consents to AI processing.
 
 ## Supabase setup (one time)
 
@@ -57,11 +57,18 @@ Without env vars the app runs in demo mode (no database, demo result image).
 4. Deploy. API routes run server-side; `REPLICATE_*` and the service-role key
    stay off the client.
 
-## Environment variables
+## Enable the optional AI room restyle
 
-See `.env.example`. `REPLICATE_API_TOKEN` / `REPLICATE_MODEL` enable live AI
-generation (paid per image on Replicate's side). Without them, the studio runs
-in demo mode.
+The AI restyle is off until the owner deliberately configures it.
+
+1. Create/choose a Cloudflare account and review the current Workers AI plan and pricing.
+2. Create a Cloudflare API token with the minimum Workers AI permissions required by the account.
+3. In Vercel Project Settings → Environment Variables, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the intended deployment environments. Keep both server-side (never prefix them with `NEXT_PUBLIC_`).
+4. Set `DATABASE_URL` to the existing Supabase Postgres connection string. This is required for the shared, atomic daily usage cap.
+5. In Supabase SQL Editor, run `supabase/ai-makeover-budget.sql` once.
+6. Redeploy. The studio checks `/api/ai-makeover` and only enables the AI button when the credentials and daily-budget table are available.
+
+The endpoint uses Cloudflare Workers AI `@cf/black-forest-labs/flux-2-klein-4b`, caps the shared daily reservation at 8,400 neurons, and applies a best-effort per-IP rate limit. Provider limits/pricing can change; verify them in your Cloudflare dashboard before enabling for users. A user photo is sent to Cloudflare only after the user checks the explicit consent box. The photo and output are not stored by Roomly. The existing local style planner works without any AI provider setup.
 
 ## API
 

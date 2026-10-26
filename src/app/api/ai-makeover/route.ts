@@ -57,6 +57,32 @@ async function reconcileDailyNeurons(delta: number): Promise<void> {
   );
 }
 
+// Read-only readiness check used by the UI. It reveals only whether the feature
+// is configured, never credentials or database details.
+export async function GET() {
+  const configured = Boolean(
+    process.env.CLOUDFLARE_ACCOUNT_ID &&
+    process.env.CLOUDFLARE_API_TOKEN &&
+    process.env.DATABASE_URL,
+  );
+  if (!configured) {
+    return NextResponse.json({ enabled: false, reason: "not_configured" });
+  }
+
+  try {
+    const result = await getPool().query(
+      "select to_regclass('public.global_daily_neurons') as table_name",
+    ) as { rows: Array<{ table_name: string | null }> };
+    const budgetTableReady = Boolean(result.rows[0]?.table_name);
+    return NextResponse.json({
+      enabled: budgetTableReady,
+      reason: budgetTableReady ? "ready" : "budget_table_missing",
+    });
+  } catch {
+    return NextResponse.json({ enabled: false, reason: "unavailable" });
+  }
+}
+
 export async function POST(request: NextRequest) {
   let body: { image?: unknown; theme?: unknown; roomType?: unknown; consent?: unknown; width?: unknown; height?: unknown };
   try {
