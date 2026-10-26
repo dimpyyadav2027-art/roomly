@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPool } from "@/db";
+import { getPool, hasHyperdrive } from "@/db";
 
 // AI restyle (beta): sends the visitor's photo - only after their explicit
 // consent in the UI - to Cloudflare Workers AI (FLUX.2 klein 4b) for a full
@@ -63,7 +63,7 @@ export async function GET() {
   const configured = Boolean(
     process.env.CLOUDFLARE_ACCOUNT_ID &&
     process.env.CLOUDFLARE_API_TOKEN &&
-    process.env.DATABASE_URL,
+    (process.env.DATABASE_URL || hasHyperdrive()),
   );
   if (!configured) {
     return NextResponse.json({ enabled: false, reason: "not_configured" });

@@ -1,0 +1,20 @@
+{
+ "name": "roomly",
+ "main": ".open-next/worker.js",
+ "compatibility_date": "2026-09-01",
+ "compatibility_flags": [
+  "nodejs_compat",
+  "global_fetch_strictly_public"
+ ],
+ "assets": {
+  "directory": ".open-next/assets",
+  "binding": "ASSETS"
+ },
+ "hyperdrive": [
+  {
+   "binding": "HYPERDRIVE",
+   "id": "81d47b90a9b7460ba07c34703faa081f",
+   "localConnectionString": "postgresql://user:pass@localhost:5432/db"
+  }
+ ]
+}

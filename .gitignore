@@ -7,3 +7,8 @@ out
 drizzle
 *.tsbuildinfo
 .DS_Store
+
+.env.production
+.open-next
+.wrangler
+.dev.vars
