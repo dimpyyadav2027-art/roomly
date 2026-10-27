@@ -236,3 +236,11 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:3px soli
 
 .add-undo-button { background: none; border: 0; color: var(--olive-dark); font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 2px; text-decoration: underline; text-underline-offset: 3px; }
 .add-undo-button:disabled { opacity: .5; cursor: default; }
+
+/* Mobile: keep every top-bar action reachable (wrap instead of clipping) */
+@media (max-width: 700px) {
+  .topbar { flex-wrap: wrap; padding: 10px 0; }
+  .nav-actions { flex-wrap: wrap; width: 100%; justify-content: flex-start; gap: 4px 12px; }
+  .nav-actions .text-button { display: inline-flex; align-items: center; min-height: 40px; max-width: none; margin-right: 0; overflow: visible; white-space: nowrap; }
+  .nav-actions .motion-switch { min-height: 40px; }
+}
