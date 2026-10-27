@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { stylePlans } from "@/lib/style-plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { TestCreditsButton } from "@/components/TestCredits";
 import { ADD_ITEMS, type AddItemKey, buildMask, changedFraction, composite, cropBox, canvasToObjectURL, dataUrlToCanvas, makeWorkCanvas, CROP , maskForApi } from "@/lib/add-edits";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 
@@ -394,6 +395,7 @@ export default function HomePage() {
         </nav>
         <div className="nav-actions"><button className="motion-switch" aria-pressed={!motion} onClick={() => setMotion(!motion)}>{motion ? "Reduce motion" : "Motion off"}</button>
           <button className="text-button" onClick={goToShop}>Shop</button>
+          <TestCreditsButton signedIn={Boolean(sessionEmail)} email={sessionEmail} onNeedSignIn={() => setShowSignIn(true)} />
           {sessionEmail ? (
             <button className="text-button" title="Tap to sign out" onClick={async () => { const sb = getSupabaseBrowser(); await sb?.auth.signOut(); setSessionEmail(null); notify("Signed out."); }}>{sessionEmail} · sign out</button>
           ) : (
