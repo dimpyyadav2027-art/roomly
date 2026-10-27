@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { stylePlans } from "@/lib/style-plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { TestCreditsButton } from "@/components/TestCredits";
+import { TestCreditsButton, TestCreditsInline } from "@/components/TestCredits";
 import { ADD_ITEMS, type AddItemKey, buildMask, changedFraction, composite, cropBox, canvasToObjectURL, dataUrlToCanvas, makeWorkCanvas, CROP , maskForApi } from "@/lib/add-edits";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 
@@ -451,16 +451,33 @@ export default function HomePage() {
 
         <div className="studio-layout">
           <section className="canvas-panel">
-            <div className="canvas-topline"><div><span className="eyebrow-number">01</span><h3>Your room, unchanged</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
+            <div className="canvas-topline"><div><span className="eyebrow-number">01</span><h3>Your room</h3></div><span className="image-hint">JPG, PNG or WEBP · under 7MB</span></div>
             <input ref={inputRef} onChange={handleUpload} type="file" accept="image/jpeg,image/png,image/webp" hidden />
             {!uploadedImage ? (
               <button className="upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onClick={() => inputRef.current?.click()}><span className="upload-icon"></span><strong>Drop a room photo here</strong><span>or <u>choose from your device</u></span><small>Best results: stand back, include the walls and windows</small></button>
             ) : (
-              <div className="work-canvas">
-                <div className="canvas-photo" data-clarity-mask="true" style={{ backgroundImage: `url(${roomImage})` }} />
-                {generated && <span className="compare-label after-label">ORIGINAL PHOTO · UNCHANGED</span>}
-                <button className="expand-photo" onClick={() => setShowPhoto(true)}>Expand photo</button>
-                {!isGenerating && <button className="change-photo" onClick={() => inputRef.current?.click()}> Change photo</button>}
+              <div className="room-workspace" data-clarity-mask="true">
+                <div className="add-edit-photo-wrap">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className={`add-edit-photo ${placingItem && !editBusy ? "placing" : ""}`}
+                    src={editImage ?? roomImage}
+                    alt="Your room photo with any additions you placed"
+                    onPointerDown={(event) => {
+                      if (!placingItem || editBusy) return;
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const work = workCanvasRef.current;
+                      const scaleX = (work?.width ?? event.currentTarget.naturalWidth) / rect.width;
+                      const scaleY = (work?.height ?? event.currentTarget.naturalHeight) / rect.height;
+                      placeAddEdit(placingItem, (event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
+                    }}
+                  />
+                </div>
+                <div className="photo-tools">
+                  {!isGenerating && <button className="photo-tool" onClick={() => inputRef.current?.click()}>Change photo</button>}
+                  <button className="photo-tool" onClick={() => setShowPhoto(true)}>Expand photo</button>
+                </div>
+                <TestCreditsInline signedIn={Boolean(sessionEmail)} email={sessionEmail} onNeedSignIn={() => setShowSignIn(true)} />
               </div>
             )}
             <button className="makeover-button" onClick={generateMakeover} disabled={isGenerating}><> {generated ? "Rebuild my plan" : "Build my style plan"}<span className="button-price">Free</span></></button>
@@ -479,25 +496,9 @@ export default function HomePage() {
                     <button key={key} className={`theme-choice ${placingItem === key ? "selected" : ""}`} disabled={!editConsent || editBusy} onClick={() => setPlacingItem(placingItem === key ? null : key)}>{ADD_ITEMS[key].label}</button>
                   ))}
                 </div>
-                {placingItem && !editBusy && <p className="add-place-hint">Now {ADD_ITEMS[placingItem].hint} on the photo below.</p>}
+                {placingItem && !editBusy && <p className="add-place-hint">Now {ADD_ITEMS[placingItem].hint} on the photo above.</p>}
                 {editBusy && <p className="add-place-hint"><span className="spinner" /> Adding to your photo - can take up to half a minute...</p>}
                 {editError && <p className="ai-error">{editError}</p>}
-                <div className="add-edit-photo-wrap">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className={`add-edit-photo ${placingItem && !editBusy ? "placing" : ""}`}
-                    src={editImage ?? roomImage}
-                    alt="Your room photo with any additions you placed"
-                    onPointerDown={(event) => {
-                      if (!placingItem || editBusy) return;
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      const work = workCanvasRef.current;
-                      const scaleX = (work?.width ?? event.currentTarget.naturalWidth) / rect.width;
-                      const scaleY = (work?.height ?? event.currentTarget.naturalHeight) / rect.height;
-                      placeAddEdit(placingItem, (event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
-                    }}
-                  />
-                </div>
                 {editStack.length > 0 && (
                   <div className="add-actions">
                     <button className="add-undo-button" onClick={undoAddEdit} disabled={editBusy}>Undo last</button>

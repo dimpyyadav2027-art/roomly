@@ -24,7 +24,7 @@ function loadCheckout(): Promise<boolean> {
   });
 }
 
-export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn: boolean; onNeedSignIn: () => void; email: string | null }) {
+function useTestCredits(signedIn: boolean, email: string | null) {
   const [info, setInfo] = useState<Info | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,9 +38,6 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
   };
   useEffect(() => { refresh(); }, [signedIn]);
   useEffect(() => { const f = () => { refresh(); }; window.addEventListener("roomly-credits-changed", f); return () => window.removeEventListener("roomly-credits-changed", f); }, []);
-
-  if (!info?.enabled) return null;
-
 
   const buy = async () => {
     setBusy(true); setMsg(null);
@@ -57,7 +54,7 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
         amount: order.amount,
         currency: order.currency,
         name: "Roomly (TEST MODE)",
-        description: `${info.pack.credits} extra images - test payment, no real money`,
+        description: `${info?.pack.credits} extra images - test payment, no real money`,
         prefill: { email: email ?? undefined, contact: "9000090000" }, // Razorpay documented test contact; this component only runs with a test key
         theme: { color: "#4d6042" },
         modal: { ondismiss: () => setBusy(false) },
@@ -77,24 +74,53 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
     } catch (e) { setMsg(e instanceof Error ? e.message : "Something went wrong."); setBusy(false); }
   };
 
+  return { info, open, setOpen, busy, msg, buy };
+}
+
+function CreditsModal({ info, busy, msg, onBuy, onClose }: { info: Info; busy: boolean; msg: string | null; onBuy: () => void; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Test credits">
+      <div className="signin-modal">
+        <button className="modal-close" onClick={onClose} aria-label="Close">Close</button>
+        <h2>Test credits</h2>
+        <p><b>Test mode.</b> No real money is charged. This only checks that payments work before launch.</p>
+        <p>Free image (one per Google account): <b data-testid="free-status">{info.freeAvailable ? "available" : "used"}</b></p>
+        <p>Your test credits: <b data-testid="test-credits">{info.testCredits ?? 0}</b></p>
+        <p>{info.pack.credits} extra images for ₹{info.pack.amountRupees} (test payment). Each AI image uses 1 image: your 1 free image first, then test credits. Failed images are refunded.</p>
+        <button className="email-login" onClick={onBuy} disabled={busy}>{busy ? "Working..." : `Pay ₹${info.pack.amountRupees} (test)`}</button>
+        {msg && <p role="status">{msg}</p>}
+        <small>Use Razorpay test payment details in the checkout window. Real cards and UPI will not be charged.</small>
+      </div>
+    </div>
+  );
+}
+
+export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn: boolean; onNeedSignIn: () => void; email: string | null }) {
+  const c = useTestCredits(signedIn, email);
+  if (!c.info?.enabled) return null;
   return (
     <>
-      <button className="text-button" onClick={() => (signedIn ? setOpen(true) : onNeedSignIn())}>Credits (test)</button>
-      {open && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Test credits">
-          <div className="signin-modal">
-            <button className="modal-close" onClick={() => setOpen(false)} aria-label="Close">Close</button>
-            <h2>Test credits</h2>
-            <p><b>Test mode.</b> No real money is charged. This only checks that payments work before launch.</p>
-            <p>Free image (one per Google account): <b data-testid="free-status">{info.freeAvailable ? "available" : "used"}</b></p>
-            <p>Your test credits: <b data-testid="test-credits">{info.testCredits ?? 0}</b></p>
-            <p>{info.pack.credits} extra images for ₹{info.pack.amountRupees} (test payment). Each AI image uses 1 image: your 1 free image first, then test credits. Failed images are refunded.</p>
-            <button className="email-login" onClick={buy} disabled={busy}>{busy ? "Working..." : `Pay ₹${info.pack.amountRupees} (test)`}</button>
-            {msg && <p role="status">{msg}</p>}
-            <small>Use Razorpay test payment details in the checkout window. Real cards and UPI will not be charged.</small>
-          </div>
-        </div>
-      )}
+      <button className="text-button" onClick={() => (signedIn ? c.setOpen(true) : onNeedSignIn())}>Credits (test)</button>
+      {c.open && c.info && <CreditsModal info={c.info} busy={c.busy} msg={c.msg} onBuy={c.buy} onClose={() => c.setOpen(false)} />}
     </>
+  );
+}
+
+export function TestCreditsInline({ signedIn, onNeedSignIn, email }: { signedIn: boolean; onNeedSignIn: () => void; email: string | null }) {
+  const c = useTestCredits(signedIn, email);
+  if (!c.info?.enabled) return null;
+  return (
+    <div className="credits-strip">
+      <span className="credits-balance">
+        Your images: {signedIn
+          ? <><b>{c.info.freeAvailable ? "1 free" : "0 free"}</b> · <b>{c.info.testCredits ?? 0} test credits</b></>
+          : <b>1 free per Google account</b>}
+      </span>
+      <button className="credits-buy" onClick={() => (signedIn ? c.setOpen(true) : onNeedSignIn())}>
+        Get {c.info.pack.credits} more images for ₹{c.info.pack.amountRupees} (test)
+      </button>
+      <small>Test mode only - no real money is charged. Each AI image uses your free image first, then test credits.</small>
+      {c.open && c.info && <CreditsModal info={c.info} busy={c.busy} msg={c.msg} onBuy={c.buy} onClose={() => c.setOpen(false)} />}
+    </div>
   );
 }
