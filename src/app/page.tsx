@@ -82,6 +82,12 @@ function formatPrice(amount: number) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount);
 }
 
+async function roomlyAuth(): Promise<Record<string, string>> {
+  const sb = getSupabaseBrowser();
+  const token = (await sb?.auth.getSession())?.data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}`, "X-Roomly-Action": crypto.randomUUID() } : {};
+}
+
 export default function HomePage() {
   const pageRef = useRef<HTMLElement>(null);
   const [motion, setMotion] = useState(true);
@@ -275,16 +281,18 @@ export default function HomePage() {
       before.getContext("2d")?.drawImage(work, bx, by, CROP, CROP, 0, 0, CROP, CROP);
       let after: HTMLCanvasElement | null = null;
       let lastError = "";
+      const auth = await roomlyAuth();
+      if (!auth.Authorization) { setShowSignIn(true); setEditError("Sign in with Google to use your free image."); return; }
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const response = await fetch("/api/add-edit", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...auth },
           body: JSON.stringify({ crop: before.toDataURL("image/png"), mask: maskForApi(mask).toDataURL("image/png"), item, seed: Math.floor(Math.random() * 1e9), consent: true }),
         });
         const data = (await response.json().catch(() => ({}))) as { image?: string; error?: string };
         if (!response.ok || typeof data.image !== "string") {
           lastError = typeof data.error === "string" ? data.error : "The edit did not work this time.";
-          if (response.status === 429) break;
+          if (response.status === 429 || response.status === 401 || response.status === 402) break;
           continue;
         }
         const candidate = await dataUrlToCanvas(data.image);
@@ -310,6 +318,7 @@ export default function HomePage() {
       setEditError("The edit did not work this time. Please try again in a moment.");
     } finally {
       setEditBusy(false);
+      window.dispatchEvent(new Event("roomly-credits-changed"));
     }
   };
 
@@ -353,9 +362,11 @@ export default function HomePage() {
       if (!ctx) throw new Error("no canvas");
       ctx.drawImage(img, 0, 0, w, h);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const auth = await roomlyAuth();
+      if (!auth.Authorization) { setShowSignIn(true); setAiError("Sign in with Google to use your free image."); return; }
       const response = await fetch("/api/ai-makeover", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({ image: dataUrl, theme, roomType, consent: true, width: w, height: h }),
       });
       const data = (await response.json().catch(() => ({}))) as { image?: string; error?: string };
@@ -369,6 +380,7 @@ export default function HomePage() {
       setAiError("The AI restyle did not work this time. Please try again in a moment.");
     } finally {
       setAiBusy(false);
+      window.dispatchEvent(new Event("roomly-credits-changed"));
     }
   };
 
@@ -414,7 +426,7 @@ export default function HomePage() {
                 <h1><span>Come home</span><span>to a room</span><span>you love.</span></h1>
                 <p className="hero-text">A brighter corner. A softer landing. Start with your room, choose what feels right and make a plan within your budget.</p>
                 <div className="hero-actions"><button className="primary-button" onClick={goToStudio}>Start your makeover</button></div>
-                <p className="generation-note hero-demo-note">Free room planner. No account needed.<br />Optional AI restyle (beta) in the studio - free, shared daily limit.</p>
+                <p className="generation-note hero-demo-note">Free room planner. No account needed.<br />Optional AI images (beta): sign in with Google, 1 free image per account.</p>
               </div>
               <div className="hero-visual" aria-label="Sample room, stock photo">
                 <div className="hero-frame"><div className="hero-room-image" style={{ backgroundImage: `url(${baseRoom})` }} /><div className="hero-wash" /><div className="homely-caption"><b>A little more<br />at home.</b><small>Stock photo - not an AI result</small></div></div>
@@ -515,7 +527,7 @@ export default function HomePage() {
                   {aiBusy ? <><span className="spinner" /> Restyling your room...</> : aiAvailable ? "Create AI restyle" : "AI restyle setup required"}
                   {!aiBusy && <span className="button-price">{aiAvailable ? "Beta" : "Offline"}</span>}
                 </button>
-                <p className="generation-note">{aiAvailable ? "Shared daily usage limit applies. Provider pricing depends on your Cloudflare account plan. Roomly does not store your photo or the result." : "AI restyle is not configured yet. The owner must add Cloudflare server credentials and run the one-time daily-budget SQL setup. Your photo stays on this device."}</p>
+                <p className="generation-note">{aiAvailable ? "Needs Google sign-in. Uses 1 image (1 free per account, then test credits). Failed images are refunded. Shared daily limit applies. Roomly does not store your photo or the result." : "AI restyle is not configured yet. The owner must add Cloudflare server credentials and run the one-time daily-budget SQL setup. Your photo stays on this device."}</p>
                 {aiError && <p className="ai-error">{aiError}</p>}
                 {aiImage && (
                   <div className="ai-result">

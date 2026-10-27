@@ -37,20 +37,10 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
     } catch { setInfo(null); }
   };
   useEffect(() => { refresh(); }, [signedIn]);
+  useEffect(() => { const f = () => { refresh(); }; window.addEventListener("roomly-credits-changed", f); return () => window.removeEventListener("roomly-credits-changed", f); }, []);
 
   if (!info?.enabled) return null;
 
-  const useOne = async () => {
-    setBusy(true); setMsg(null);
-    try {
-      const r = await fetch("/api/credits/use", { method: "POST", headers: await authHeaders() });
-      const out = await r.json();
-      if (!r.ok) throw new Error(out.error || "Could not record that.");
-      setMsg(out.source === "free" ? "Test usage recorded: used your free image. No image was generated." : out.source === "test" ? "Test usage recorded: used 1 test credit. No image was generated." : "No images left. Buy the test pack to continue.");
-      await refresh();
-    } catch (e) { setMsg(e instanceof Error ? e.message : "Something went wrong."); }
-    setBusy(false);
-  };
 
   const buy = async () => {
     setBusy(true); setMsg(null);
@@ -68,7 +58,7 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
         currency: order.currency,
         name: "Roomly (TEST MODE)",
         description: `${info.pack.credits} extra images - test payment, no real money`,
-        prefill: { email: email ?? undefined },
+        prefill: { email: email ?? undefined, contact: "9000090000" }, // Razorpay documented test contact; this component only runs with a test key
         theme: { color: "#4d6042" },
         modal: { ondismiss: () => setBusy(false) },
         handler: async (res: RzpResponse) => {
@@ -98,8 +88,7 @@ export function TestCreditsButton({ signedIn, onNeedSignIn, email }: { signedIn:
             <p><b>Test mode.</b> No real money is charged. This only checks that payments work before launch.</p>
             <p>Free image (one per Google account): <b data-testid="free-status">{info.freeAvailable ? "available" : "used"}</b></p>
             <p>Your test credits: <b data-testid="test-credits">{info.testCredits ?? 0}</b></p>
-            <p>{info.pack.credits} extra images for ₹{info.pack.amountRupees} (test payment). Credits are not connected to image generation yet, so they unlock nothing today.</p>
-            <button className="text-button" onClick={useOne} disabled={busy}>Record a test usage (no image is made)</button>
+            <p>{info.pack.credits} extra images for ₹{info.pack.amountRupees} (test payment). Each AI image uses 1 image: your 1 free image first, then test credits. Failed images are refunded.</p>
             <button className="email-login" onClick={buy} disabled={busy}>{busy ? "Working..." : `Pay ₹${info.pack.amountRupees} (test)`}</button>
             {msg && <p role="status">{msg}</p>}
             <small>Use Razorpay test payment details in the checkout window. Real cards and UPI will not be charged.</small>

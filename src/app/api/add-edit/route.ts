@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { metered } from "@/lib/payments";
 import { getPool } from "@/db";
 
 // Tap-to-add edits: the visitor taps a spot on their photo and picks an item
@@ -46,7 +47,7 @@ async function reserveDailyCall(): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   let body: { crop?: unknown; mask?: unknown; item?: unknown; seed?: unknown; consent?: unknown };
   try {
     body = await request.json();
@@ -124,4 +125,10 @@ export async function POST(request: NextRequest) {
     console.error("Workers AI add-edit error", error);
     return NextResponse.json({ error: "The edit did not work this time. Please try again in a moment." }, { status: 502 });
   }
+}
+
+
+// Each successful image uses one of the signed-in user's images (1 free per Google account, then test credits).
+export async function POST(request: NextRequest) {
+  return metered(request, (r) => handlePost(r as NextRequest));
 }

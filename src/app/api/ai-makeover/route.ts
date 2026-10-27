@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { metered } from "@/lib/payments";
 import { getPool, hasHyperdrive } from "@/db";
 
 // AI restyle (beta): sends the visitor's photo - only after their explicit
@@ -83,7 +84,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   let body: { image?: unknown; theme?: unknown; roomType?: unknown; consent?: unknown; width?: unknown; height?: unknown };
   try {
     body = await request.json();
@@ -195,4 +196,10 @@ export async function POST(request: NextRequest) {
     await reconcileDailyNeurons(-RESERVE_NEURONS).catch(() => {});
     return NextResponse.json({ error: "The AI restyle did not work this time. Please try again in a moment." }, { status: 502 });
   }
+}
+
+
+// Each successful image uses one of the signed-in user's images (1 free per Google account, then test credits).
+export async function POST(request: NextRequest) {
+  return metered(request, (r) => handlePost(r as NextRequest));
 }

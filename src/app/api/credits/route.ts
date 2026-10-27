@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { freeAvailable, ensureSchema, getPayConfig, PACK, requireUser, testCreditBalance } from "@/lib/payments";
+import { reapStaleFor, freeAvailable, ensureSchema, getPayConfig, PACK, requireUser, testCreditBalance } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ enabled: true, mode: "test", signedIn: false, pack });
   try {
     await ensureSchema();
+    await reapStaleFor(user.id);
     return NextResponse.json({ enabled: true, mode: "test", signedIn: true, testCredits: await testCreditBalance(user.id), freeAvailable: await freeAvailable(user.id), pack });
   } catch (error) {
     console.error("credits read failed", error);
